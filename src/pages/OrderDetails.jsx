@@ -95,15 +95,25 @@ export default function OrderDetails() {
     const items = [];
     const monthlyRate = order.monthlyInstallmentRate;
     
-    let startDate = order.installmentStartDate ? new Date(order.installmentStartDate) : new Date(order.createdAt);
+    // Parse start date ensuring we treat it as UTC to avoid local shifts
+    let startRaw = order.installmentStartDate || order.createdAt;
+    let startDate = new Date(startRaw);
+    
     const totalTenureMonths = Math.round(order.totalBalance / monthlyRate);
 
-    let checkDate = new Date(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1);
-    
+    // Month name helper to avoid timezone issues with toLocaleDateString
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
     for (let i = 0; i < totalTenureMonths; i++) {
-        const year = checkDate.getUTCFullYear();
-        const month = checkDate.getUTCMonth();
+        // Calculate the target year and month strictly using UTC methods
+        const date = new Date(startRaw);
+        date.setUTCMonth(date.getUTCMonth() + i);
         
+        const year = date.getUTCFullYear();
+        const month = date.getUTCMonth();
+        const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+        
+        // Find a payment that matches this year and month
         const payment = order.payments?.find(p => {
             const pDate = new Date(p.paymentDate);
             return pDate.getUTCFullYear() === year && 
@@ -112,14 +122,12 @@ export default function OrderDetails() {
         });
         
         items.push({
-            month: new Date(Date.UTC(year, month, 1)),
-            monthStr: `${year}-${String(month + 1).padStart(2, '0')}`,
+            label: `${monthNames[month]} ${year}`,
+            monthStr,
             amount: monthlyRate,
             isPaid: !!payment,
             paymentDetail: payment
         });
-
-        checkDate.setUTCMonth(checkDate.getUTCMonth() + 1);
     }
 
     return items;
@@ -141,7 +149,7 @@ export default function OrderDetails() {
     const payloads = selectedMonths.map(monthStr => ({
       orderId: order.id,
       amount: order.monthlyInstallmentRate,
-      paymentDate: new Date(monthStr + "-02").toISOString()
+      paymentDate: new Date(monthStr + "-02T00:00:00Z").toISOString() // Force UTC
     }));
 
     payMutation.mutate(payloads);
@@ -317,7 +325,7 @@ export default function OrderDetails() {
                         <TableBody>
                             {schedule.map((item, idx) => {
                                 const isSelected = selectedMonths.includes(item.monthStr);
-                                const canSelect = !item.isPaid && (order.status === 'Active' || order.status === 'Completed') && isAdmin;
+                                const canSelect = !item.isPaid && isAdmin;
 
                                 return (
                                     <TableRow 
@@ -328,7 +336,7 @@ export default function OrderDetails() {
                                         )}
                                         onClick={() => canSelect && toggleMonth(item.monthStr)}
                                     >
-                                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                                        <TableCell className="text-center">
                                             {item.isPaid ? (
                                                 <div className="w-4 h-4 mx-auto bg-emerald-500 rounded flex items-center justify-center">
                                                     <CheckCircle2 className="w-3 h-3 text-white" />
@@ -338,15 +346,14 @@ export default function OrderDetails() {
                                                     type="checkbox" 
                                                     className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                                                     checked={isSelected}
-                                                    onChange={() => canSelect && toggleMonth(item.monthStr)}
-                                                    disabled={!canSelect || payMutation.isPending}
+                                                    readOnly
                                                 />
                                             )}
                                         </TableCell>
                                         <TableCell className={cn("font-medium", item.isPaid ? "text-muted-foreground" : "text-foreground")}>
-                                            {item.month.toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' })}
+                                            {item.label}
                                         </TableCell>
-                                        <TableCell className="text-sm font-mono">RM {item.amount.toLocaleString()}</TableCell>
+                                        <TableCell className="text-sm font-mono text-muted-foreground">RM {item.amount.toLocaleString()}</TableCell>
                                         <TableCell className="text-right">
                                             {item.isPaid ? (
                                                 <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
@@ -373,26 +380,32 @@ export default function OrderDetails() {
                 <Card className="border-border/40 shadow-sm p-0">
                     <div className="divide-y divide-border">
                         {order.payments?.length > 0 ? (
-                            [...order.payments].sort((a,b) => new Date(b.paymentDate) - new Date(a.paymentDate)).map((p) => (
-                                <div key={p.id} className="p-4 flex justify-between items-center hover:bg-muted/20 transition-colors">
-                                    <div className="space-y-0.5">
-                                        <p className="text-xs font-bold text-foreground">
-                                            {Math.abs(p.amount - order.monthlyInstallmentRate) < 0.01 
-                                                ? new Date(p.paymentDate).toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' })
-                                                : "Initial Deposit"}
-                                        </p>
-                                        <p className="text-[10px] text-muted-foreground font-mono">
-                                            {new Date(p.createdAt).toLocaleDateString()} {new Date(p.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                        </p>
+                            [...order.payments].sort((a,b) => new Date(b.paymentDate) - new Date(a.paymentDate)).map((p) => {
+                                const pDate = new Date(p.paymentDate);
+                                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                                const isInstallment = Math.abs(p.amount - order.monthlyInstallmentRate) < 0.01;
+
+                                return (
+                                    <div key={p.id} className="p-4 flex justify-between items-center hover:bg-muted/20 transition-colors">
+                                        <div className="space-y-0.5">
+                                            <p className="text-xs font-bold text-foreground">
+                                                {isInstallment 
+                                                    ? `${monthNames[pDate.getUTCMonth()]} ${pDate.getUTCFullYear()}`
+                                                    : "Initial Deposit"}
+                                            </p>
+                                            <p className="text-[10px] text-muted-foreground font-mono">
+                                                {new Date(p.createdAt).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-bold text-emerald-600">RM {p.amount.toLocaleString()}</p>
+                                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">
+                                                {isInstallment ? "Installment" : "Deposit"}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-sm font-bold text-emerald-600">RM {p.amount.toLocaleString()}</p>
-                                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">
-                                            {Math.abs(p.amount - order.monthlyInstallmentRate) < 0.01 ? "Installment" : "Deposit"}
-                                        </p>
-                                    </div>
-                                </div>
-                            ))
+                                );
+                            })
                         ) : (
                             <div className="p-10 text-center space-y-2">
                                 <DollarSign className="w-8 h-8 text-muted-foreground/30 mx-auto" />
@@ -409,7 +422,7 @@ export default function OrderDetails() {
         isOpen={isPayDialogOpen}
         onClose={() => setIsPayDialogOpen(false)}
         title="Confirm Offline Payment?"
-        description={`You are about to mark ${selectedMonths.length} month(s) as paid (Total: RM ${(selectedMonths.length * order.monthlyInstallmentRate).toLocaleString()}). This will update the user's balance and generate commission forecasts. Please ensure you have received the receipt.`}
+        description={`You are about to mark ${selectedMonths.length} month(s) as paid (Total: RM ${(selectedMonths.length * order.monthlyInstallmentRate).toLocaleString()}). This will update the user's balance and generate commission forecasts.`}
         onConfirm={confirmPayment}
         variant="default"
         confirmText="Confirm Payment"
@@ -420,7 +433,7 @@ export default function OrderDetails() {
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         title="Delete Order?"
-        description="Are you sure you want to delete this order? This will also remove all associated payment history and commission forecasts. This action cannot be undone."
+        description="Are you sure you want to delete this order? This action cannot be undone."
         onConfirm={() => deleteMutation.mutate()}
         variant="destructive"
         confirmText="Yes, Delete Order"

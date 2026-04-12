@@ -73,7 +73,7 @@ export default function Login() {
                   <Input
                     id="identifier"
                     type="text"
-                    placeholder="e.g. 900101-14-1234"
+                    placeholder="e.g. 900101141234/+60123456789"
                     className="pl-9 bg-background border-border focus-visible:ring-primary/50"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
