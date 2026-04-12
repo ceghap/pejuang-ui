@@ -12,6 +12,8 @@ import Categories from './pages/Categories';
 import TierConfigs from './pages/TierConfigs';
 import Shop from './pages/Shop';
 import Profile from './pages/Profile';
+import Orders from './pages/Orders';
+import OrderDetails from './pages/OrderDetails';
 import ErrorPage from './pages/ErrorPage';
 import SidebarLayout from './components/layout/SidebarLayout';
 import { Toaster } from './components/ui/sonner';
@@ -86,7 +88,9 @@ const router = createBrowserRouter([
         element: <SidebarLayout />,
         children: [
           { path: '/profile', element: <Profile /> },
-          { path: '/shop', element: <Shop /> }
+          { path: '/shop', element: <Shop /> },
+          { path: '/orders', element: <Orders /> },
+          { path: '/orders/:id', element: <OrderDetails /> }
         ]
       }
     ]

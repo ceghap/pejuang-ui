@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from '@tanstack/react-form';
-import { ShoppingBag, Loader2, Search, Filter, CheckCircle2, XCircle, UserPlus } from 'lucide-react';
+import { ShoppingBag, Loader2, Search, Filter, CheckCircle2, XCircle, UserPlus, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -91,6 +92,7 @@ function UserLookup({ value, onChange }) {
 }
 
 export default function Shop() {
+  const navigate = useNavigate();
   const { user: currentUser } = useAuthStore();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
@@ -120,28 +122,45 @@ export default function Shop() {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries(['orders']);
       setIsBuyDialogOpen(false);
       toast.success('Order placed successfully!');
+      // Redirect to the order details page
+      navigate(`/orders/${data.id}`);
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to place order');
     }
   });
 
+  const calculateMonths = (start, end) => {
+    if (!start || !end) return 0;
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1;
+    return months > 0 ? months : 0;
+  };
+
   const buyForm = useForm({
     defaultValues: {
       depositAmount: '',
       isCash: false,
       userId: null,
+      isHistorical: false,
+      createdAt: new Date().toISOString().split('T')[0],
+      installmentStartDate: '',
+      paidUpToDate: '',
     },
     onSubmit: async ({ value }) => {
       buyMutation.mutate({
         productId: selectedProduct.id,
         depositAmount: parseFloat(value.depositAmount),
         isCash: value.isCash,
-        userId: value.userId || undefined
+        userId: value.userId || undefined,
+        createdAt: value.isHistorical ? value.createdAt : undefined,
+        installmentStartDate: (value.isHistorical && value.installmentStartDate) ? `${value.installmentStartDate}-01` : undefined,
+        paidUpToDate: (value.isHistorical && value.paidUpToDate) ? `${value.paidUpToDate}-01` : undefined
       });
     },
   });
@@ -162,6 +181,7 @@ export default function Shop() {
     buyForm.setFieldValue('isCash', val);
     if (val) {
       buyForm.setFieldValue('depositAmount', selectedProduct.price.toString());
+      buyForm.setFieldValue('isHistorical', false);
     } else {
       buyForm.setFieldValue('depositAmount', (selectedProduct.price * 0.1).toFixed(2));
     }
@@ -332,6 +352,119 @@ export default function Shop() {
                     value={field.state.value}
                     onChange={(val) => field.handleChange(val)}
                   />
+                )}
+              />
+            )}
+
+            {isAdmin && (
+              <buyForm.Subscribe
+                selector={(state) => state.values.isCash}
+                children={(isCash) => !isCash && (
+                  <div className="space-y-4 pt-2 border-t border-border">
+                    <buyForm.Field
+                      name="isHistorical"
+                      children={(field) => (
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="isHistorical" className="text-amber-600 dark:text-amber-400 font-medium">Historical Order (Backdate)</Label>
+                          <input
+                            id="isHistorical"
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                            checked={field.state.value}
+                            onChange={(e) => field.handleChange(e.target.checked)}
+                          />
+                        </div>
+                      )}
+                    />
+
+                    <buyForm.Subscribe
+                      selector={(state) => state.values.isHistorical}
+                      children={(isHistorical) => isHistorical && (
+                        <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-200">
+                          <buyForm.Field
+                            name="createdAt"
+                            children={(field) => (
+                              <div className="space-y-2 col-span-2">
+                                <Label htmlFor="createdAt">Order Date (Deposit Date)</Label>
+                                <div className="relative">
+                                  <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                  <Input
+                                    id="createdAt"
+                                    type="date"
+                                    className="pl-9"
+                                    value={field.state.value}
+                                    onChange={(e) => field.handleChange(e.target.value)}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          />
+                          <buyForm.Field
+                            name="installmentStartDate"
+                            children={(field) => (
+                              <div className="space-y-2">
+                                <Label htmlFor="installmentStartDate">First Installment</Label>
+                                <div className="relative">
+                                  <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                  <Input
+                                    id="installmentStartDate"
+                                    type="month"
+                                    className="pl-9"
+                                    value={field.state.value}
+                                    onChange={(e) => field.handleChange(e.target.value)}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          />
+                          <buyForm.Field
+                            name="paidUpToDate"
+                            children={(field) => (
+                              <div className="space-y-2">
+                                <Label htmlFor="paidUpToDate">Paid Up To</Label>
+                                <div className="relative">
+                                  <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                  <Input
+                                    id="paidUpToDate"
+                                    type="month"
+                                    className="pl-9"
+                                    value={field.state.value}
+                                    onChange={(e) => field.handleChange(e.target.value)}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          />
+                          
+                          <buyForm.Subscribe
+                            selector={(state) => [state.values.installmentStartDate, state.values.paidUpToDate]}
+                            children={([start, end]) => {
+                              const months = calculateMonths(start, end);
+                              const rate = tierConfigs?.find(c => selectedProduct.price >= c.minPrice && selectedProduct.price <= c.maxPrice)?.installmentRate || 0;
+                              const total = months * rate;
+                              
+                              return months > 0 ? (
+                                <div className="col-span-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
+                                  <div className="flex justify-between font-medium text-amber-700 dark:text-amber-400">
+                                    <span>Calculated History:</span>
+                                    <span>{months} Months</span>
+                                  </div>
+                                  <div className="flex justify-between text-muted-foreground">
+                                    <span>Rate: RM {rate}/mo x {months}</span>
+                                    <span className="font-bold text-foreground">RM {total.toLocaleString()}</span>
+                                  </div>
+                                </div>
+                              ) : null;
+                            }}
+                          />
+
+                          <div className="col-span-2 text-[10px] text-muted-foreground italic bg-muted/30 p-2 rounded border border-border">
+                            The system will generate a separate payment record for each month in the selected range to reflect the member's offline payment history.
+                          </div>
+                        </div>
+                      )}
+                    />
+                  </div>
                 )}
               />
             )}
