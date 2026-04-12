@@ -48,20 +48,11 @@ export default function OrderDetails() {
   });
 
   const payMutation = useMutation({
-    mutationFn: async (payloads) => {
-      if (Array.isArray(payloads)) {
-        for (const p of payloads) {
-          await fetchClient('/finance/payments', {
-            method: 'POST',
-            body: JSON.stringify(p),
-          });
-        }
-      } else {
-        return fetchClient('/finance/payments', {
-          method: 'POST',
-          body: JSON.stringify(payloads),
-        });
-      }
+    mutationFn: async (payload) => {
+      return fetchClient('/finance/payments/bulk', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['order-details', id]);
@@ -146,13 +137,12 @@ export default function OrderDetails() {
   };
 
   const confirmPayment = () => {
-    const payloads = selectedMonths.map(monthStr => ({
+    const payload = {
       orderId: order.id,
-      amount: order.monthlyInstallmentRate,
-      paymentDate: new Date(monthStr + "-02T00:00:00Z").toISOString() // Force UTC
-    }));
+      paymentDates: selectedMonths.map(monthStr => new Date(monthStr + "-02T00:00:00Z").toISOString())
+    };
 
-    payMutation.mutate(payloads);
+    payMutation.mutate(payload);
   };
 
   if (isLoading) {
