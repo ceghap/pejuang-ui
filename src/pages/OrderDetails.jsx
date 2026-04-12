@@ -209,7 +209,7 @@ export default function OrderDetails() {
                     </div>
                     <div className="text-right">
                         <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Total Price</p>
-                        <p className="text-2xl font-black">RM {(order.product?.price || 0).toLocaleString()}</p>
+                        <p className="text-2xl font-black">RM {(order.priceAtPurchase || order.product?.price || 0).toLocaleString()}</p>
                     </div>
                 </div>
             </CardHeader>
@@ -223,7 +223,7 @@ export default function OrderDetails() {
                 <div className="space-y-1">
                     <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Total Paid</p>
                     <p className="text-lg font-bold text-emerald-500">
-                        RM {( (order.product?.price || 0) - order.remainingBalance).toLocaleString()}
+                        RM {( (order.priceAtPurchase || order.product?.price || 0) - order.remainingBalance).toLocaleString()}
                     </p>
                 </div>
                 <div className="space-y-1">

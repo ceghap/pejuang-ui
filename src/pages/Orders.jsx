@@ -161,7 +161,7 @@ export default function Orders() {
                             <span className={cn("text-sm font-bold", o.remainingBalance > 0 ? "text-rose-500" : "text-emerald-600")}>
                               RM {o.remainingBalance.toLocaleString()}
                             </span>
-                            <span className="text-[10px] text-muted-foreground">of RM {(o.product?.price || 0).toLocaleString()}</span>
+                            <span className="text-[10px] text-muted-foreground">of RM {(o.priceAtPurchase || o.product?.price || 0).toLocaleString()}</span>
                           </div>
                         </TableCell>
                         <TableCell>
