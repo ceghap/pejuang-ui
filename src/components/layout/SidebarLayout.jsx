@@ -16,14 +16,12 @@ export default function SidebarLayout() {
   const userLinks = [
     { label: 'Profile', path: '/profile', icon: User },
     { label: 'Shop', path: '/shop', icon: ShoppingBag },
-    { label: 'Orders', path: '/orders', icon: Receipt },
-    /* Placeholders for Phase 4 */
-    { label: 'My Bills', path: '/my-bills', icon: LayoutDashboard, disabled: true },
+    { label: 'My Bills & History', path: '/orders', icon: Receipt },
   ];
 
   const adminLinks = [
     { label: 'User Management', path: '/admin/users', icon: LayoutDashboard },
-    { label: 'Orders Management', path: '/orders', icon: Receipt },
+    { label: 'Billing & Orders', path: '/orders', icon: Receipt },
     { label: 'Network Hierarchy', path: '/admin/hierarchy', icon: Network },
     { label: 'Membership Programs', path: '/admin/memberships', icon: IdCard },
     { label: 'Product Catalog', path: '/admin/products', icon: ShoppingBag },
