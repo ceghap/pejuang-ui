@@ -191,7 +191,7 @@ export default function Shop() {
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Exclusive Shop</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Panji Alam Shop</h1>
           <p className="text-muted-foreground mt-1">Select a product to start your exclusive membership journey.</p>
         </div>
       </div>
@@ -294,7 +294,7 @@ export default function Shop() {
                 <span className="text-muted-foreground">Total Price:</span>
                 <span className="font-bold text-foreground">RM {selectedProduct?.price.toLocaleString()}</span>
               </div>
-              
+
               <buyForm.Field
                 name="isCash"
                 children={(field) => (
@@ -342,7 +342,7 @@ export default function Shop() {
                 <div className="text-sm text-muted-foreground italic px-1">
                   Full payment of RM {selectedProduct?.price.toLocaleString()} will be required. Commission will be credited to introducer immediately.
                 </div>
-              {!buyForm.useStore(state => state.values.isCash) && (
+              ) : (
                 <buyForm.Field
                   name="depositAmount"
                   validators={{

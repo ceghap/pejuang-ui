@@ -13,7 +13,7 @@ export default function Login() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  
+
   const loginAction = useAuthStore((state) => state.login);
 
   const loginMutation = useMutation({
@@ -47,13 +47,13 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4 selection:bg-primary/10">
-      
+
       {/* Decorative gradient blob behind the card */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40rem] h-[40rem] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in-95 duration-500">
         <h1 className="text-3xl font-light text-foreground mb-8 text-center tracking-tight">
-          Pejuang <span className="font-semibold">Exclusive</span>
+          Pejuang <span className="font-semibold">GM</span>
         </h1>
 
         <Card className="bg-card border-border text-card-foreground shadow-2xl backdrop-blur-xl bg-opacity-80">
@@ -65,14 +65,14 @@ export default function Login() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5">
-              
+
               <div className="space-y-2">
                 <Label htmlFor="identifier" className="text-muted-foreground">Identifier (IC/Phone)</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
-                  <Input 
-                    id="identifier" 
-                    type="text" 
+                  <Input
+                    id="identifier"
+                    type="text"
                     placeholder="e.g. 900101-14-1234"
                     className="pl-9 bg-background border-border focus-visible:ring-primary/50"
                     value={identifier}
@@ -86,9 +86,9 @@ export default function Login() {
                 <Label htmlFor="password" className="text-muted-foreground">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
-                  <Input 
-                    id="password" 
-                    type="password" 
+                  <Input
+                    id="password"
+                    type="password"
                     placeholder="••••••••"
                     className="pl-9 bg-background border-border focus-visible:ring-primary/50"
                     value={password}
@@ -104,8 +104,8 @@ export default function Login() {
                 </div>
               )}
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full bg-primary text-primary-foreground hover:opacity-90 transition-all active:scale-[0.98]"
                 disabled={loginMutation.isPending}
               >

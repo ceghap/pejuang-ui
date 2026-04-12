@@ -14,7 +14,7 @@ export default function ChangePassword() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  
+
   // pendingUserId is set by our fetchClient interceptor
   const pendingUserId = useAuthStore((state) => state.pendingUserId);
   const loginAction = useAuthStore((state) => state.login);
@@ -64,15 +64,15 @@ export default function ChangePassword() {
 
       <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in-95 duration-500">
         <h1 className="text-3xl font-light text-zinc-100 mb-8 text-center tracking-tight">
-          Pejuang <span className="font-semibold text-white">Exclusive</span>
+          Pejuang <span className="font-semibold text-white">GM</span>
         </h1>
 
         <Card className="bg-zinc-900 border-zinc-800 text-zinc-100 shadow-2xl backdrop-blur-xl bg-opacity-80">
           <CardHeader className="space-y-1 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
             <div className="flex items-center gap-2 text-amber-500">
-               <AlertCircle className="w-5 h-5" />
-               <span className="font-medium text-sm tracking-widest uppercase">Action Required</span>
+              <AlertCircle className="w-5 h-5" />
+              <span className="font-medium text-sm tracking-widest uppercase">Action Required</span>
             </div>
             <CardTitle className="text-2xl tracking-tight text-white mt-2">Setup Password</CardTitle>
             <CardDescription className="text-zinc-400">
@@ -81,14 +81,14 @@ export default function ChangePassword() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5">
-              
+
               <div className="space-y-2">
                 <Label htmlFor="currentPassword" className="text-zinc-300">Current Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
-                  <Input 
-                    id="currentPassword" 
-                    type="password" 
+                  <Input
+                    id="currentPassword"
+                    type="password"
                     placeholder="••••••••"
                     className="pl-9 bg-zinc-950/50 border-zinc-800 focus-visible:ring-indigo-500/50"
                     value={currentPassword}
@@ -102,9 +102,9 @@ export default function ChangePassword() {
                 <Label htmlFor="newPassword" className="text-zinc-300">New Password</Label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
-                  <Input 
-                    id="newPassword" 
-                    type="password" 
+                  <Input
+                    id="newPassword"
+                    type="password"
                     placeholder="Minimal 8 characters"
                     className="pl-9 bg-zinc-950/50 border-zinc-800 focus-visible:ring-amber-500/50"
                     value={newPassword}
@@ -118,9 +118,9 @@ export default function ChangePassword() {
                 <Label htmlFor="confirmPassword" className="text-zinc-300">Confirm New Password</Label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
-                  <Input 
-                    id="confirmPassword" 
-                    type="password" 
+                  <Input
+                    id="confirmPassword"
+                    type="password"
                     placeholder="Retype password"
                     className="pl-9 bg-zinc-950/50 border-zinc-800 focus-visible:ring-amber-500/50"
                     value={confirmPassword}
@@ -136,8 +136,8 @@ export default function ChangePassword() {
                 </div>
               )}
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full bg-amber-500 text-amber-950 hover:bg-amber-400 transition-all active:scale-[0.98]"
                 disabled={changePwdMutation.isPending}
               >
