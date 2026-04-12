@@ -79,49 +79,27 @@ export default function OrderDetails() {
     }
   });
 
-  // Calculate Schedule
+  // Calculate Schedule from DB data
   const schedule = useMemo(() => {
-    if (!order || order.tier === 'N/A') return [];
+    if (!order || !order.billingSchedules) return [];
 
-    const items = [];
-    const monthlyRate = order.monthlyInstallmentRate;
-    
-    // Parse start date ensuring we treat it as UTC to avoid local shifts
-    let startRaw = order.installmentStartDate || order.createdAt;
-    let startDate = new Date(startRaw);
-    
-    const totalTenureMonths = Math.round(order.totalBalance / monthlyRate);
-
-    // Month name helper to avoid timezone issues with toLocaleDateString
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-    for (let i = 0; i < totalTenureMonths; i++) {
-        // Calculate the target year and month strictly using UTC methods
-        const date = new Date(startRaw);
-        date.setUTCMonth(date.getUTCMonth() + i);
-        
-        const year = date.getUTCFullYear();
-        const month = date.getUTCMonth();
-        const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
-        
-        // Find a payment that matches this year and month
-        const payment = order.payments?.find(p => {
-            const pDate = new Date(p.paymentDate);
-            return pDate.getUTCFullYear() === year && 
-                   pDate.getUTCMonth() === month && 
-                   Math.abs(p.amount - monthlyRate) < 0.01;
+    return order.billingSchedules
+        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+        .map(bill => {
+            const date = new Date(bill.dueDate);
+            const year = date.getUTCFullYear();
+            const month = date.getUTCMonth();
+            
+            return {
+                label: `${monthNames[month]} ${year}`,
+                monthStr: `${year}-${String(month + 1).padStart(2, '0')}`,
+                amount: bill.amount,
+                isPaid: bill.isPaid,
+                paidAt: bill.paidAt
+            };
         });
-        
-        items.push({
-            label: `${monthNames[month]} ${year}`,
-            monthStr,
-            amount: monthlyRate,
-            isPaid: !!payment,
-            paymentDetail: payment
-        });
-    }
-
-    return items;
   }, [order]);
 
   const toggleMonth = (monthStr) => {

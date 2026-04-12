@@ -59,23 +59,23 @@ export default function ChangePassword() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col justify-center items-center p-4 selection:bg-zinc-800">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40rem] h-[40rem] bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-background flex flex-col justify-center items-center p-4 selection:bg-primary/10">
 
-      <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in-95 duration-500">
-        <h1 className="text-3xl font-light text-zinc-100 mb-8 text-center tracking-tight">
-          Pejuang <span className="font-semibold text-white">GM</span>
-        </h1>
+      {/* Decorative gradient blob behind the card */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40rem] h-[40rem] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
-        <Card className="bg-zinc-900 border-zinc-800 text-zinc-100 shadow-2xl backdrop-blur-xl bg-opacity-80">
+      <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in-95 duration-500 flex flex-col items-center">
+        <img src="/logopejuang.svg" alt="Pejuang Logo" className="h-24 w-auto mb-8" />
+
+        <Card className="bg-card border-border text-card-foreground shadow-2xl backdrop-blur-xl bg-opacity-80 w-full">
           <CardHeader className="space-y-1 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
-            <div className="flex items-center gap-2 text-amber-500">
+            <div className="flex items-center gap-2 text-amber-600">
               <AlertCircle className="w-5 h-5" />
               <span className="font-medium text-sm tracking-widest uppercase">Action Required</span>
             </div>
-            <CardTitle className="text-2xl tracking-tight text-white mt-2">Setup Password</CardTitle>
-            <CardDescription className="text-zinc-400">
+            <CardTitle className="text-2xl tracking-tight mt-2">Setup Password</CardTitle>
+            <CardDescription className="text-muted-foreground">
               For security reasons, you must change your assigned password before continuing to your profile.
             </CardDescription>
           </CardHeader>
@@ -83,14 +83,14 @@ export default function ChangePassword() {
             <form onSubmit={handleSubmit} className="space-y-5">
 
               <div className="space-y-2">
-                <Label htmlFor="currentPassword" className="text-zinc-300">Current Password</Label>
+                <Label htmlFor="currentPassword" className="text-muted-foreground">Current Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
                   <Input
                     id="currentPassword"
                     type="password"
                     placeholder="••••••••"
-                    className="pl-9 bg-zinc-950/50 border-zinc-800 focus-visible:ring-indigo-500/50"
+                    className="pl-9 bg-background border-border focus-visible:ring-primary/50"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     required
@@ -99,14 +99,14 @@ export default function ChangePassword() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="newPassword" className="text-zinc-300">New Password</Label>
+                <Label htmlFor="newPassword" className="text-muted-foreground">New Password</Label>
                 <div className="relative">
-                  <KeyRound className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                  <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
                   <Input
                     id="newPassword"
                     type="password"
                     placeholder="Minimal 8 characters"
-                    className="pl-9 bg-zinc-950/50 border-zinc-800 focus-visible:ring-amber-500/50"
+                    className="pl-9 bg-background border-border focus-visible:ring-amber-500/50"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
@@ -115,14 +115,14 @@ export default function ChangePassword() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-zinc-300">Confirm New Password</Label>
+                <Label htmlFor="confirmPassword" className="text-muted-foreground">Confirm New Password</Label>
                 <div className="relative">
-                  <KeyRound className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                  <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
                   <Input
                     id="confirmPassword"
                     type="password"
                     placeholder="Retype password"
-                    className="pl-9 bg-zinc-950/50 border-zinc-800 focus-visible:ring-amber-500/50"
+                    className="pl-9 bg-background border-border focus-visible:ring-amber-500/50"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
@@ -131,14 +131,14 @@ export default function ChangePassword() {
               </div>
 
               {errorMessage && (
-                <div className="p-3 text-sm bg-red-950/50 border border-red-900/50 text-red-400 rounded-md animate-in slide-in-from-top-1">
+                <div className="p-3 text-sm bg-destructive/10 border border-destructive/20 text-destructive rounded-md animate-in slide-in-from-top-1">
                   {errorMessage}
                 </div>
               )}
 
               <Button
                 type="submit"
-                className="w-full bg-amber-500 text-amber-950 hover:bg-amber-400 transition-all active:scale-[0.98]"
+                className="w-full bg-amber-500 text-white hover:bg-amber-600 transition-all active:scale-[0.98]"
                 disabled={changePwdMutation.isPending}
               >
                 {changePwdMutation.isPending ? 'Updating...' : 'Secure Account ->'}

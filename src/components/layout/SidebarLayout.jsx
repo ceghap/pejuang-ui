@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { Network, LayoutDashboard, User, ShieldCheck, LogOut, ShoppingBag, Receipt, IdCard, Menu, X, Layers } from 'lucide-react';
+import { Network, LayoutDashboard, User, LogOut, ShoppingBag, Receipt, IdCard, Menu, X, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -78,15 +78,12 @@ export default function SidebarLayout() {
       )}>
         
         {/* Brand Header */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-border shrink-0">
-          <div className="flex items-center">
-            <ShieldCheck className="w-6 h-6 text-emerald-500 mr-2" />
-            <span className="text-xl tracking-wider font-semibold">PEJUANG</span>
-          </div>
+        <div className="h-16 flex items-center justify-center px-6 border-b border-border shrink-0 relative">
+          <img src="/logopejuang.svg" alt="Pejuang Logo" className="h-11 w-auto" />
           <Button 
             variant="ghost" 
             size="sm" 
-            className="lg:hidden p-0 h-8 w-8"
+            className="lg:hidden p-0 h-8 w-8 absolute right-4"
             onClick={() => setIsSidebarOpen(false)}
           >
             <X className="w-5 h-5" />
@@ -141,8 +138,7 @@ export default function SidebarLayout() {
             <Menu className="w-6 h-6" />
           </Button>
           <div className="flex items-center">
-            <ShieldCheck className="w-5 h-5 text-emerald-500 mr-2" />
-            <span className="text-lg tracking-wider font-semibold">PEJUANG</span>
+            <img src="/logopejuang.svg" alt="Pejuang Logo" className="h-9 w-auto" />
           </div>
         </header>
 
