@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { Network, LayoutDashboard, User, ShieldCheck, LogOut, ShoppingBag, Receipt, IdCard, Menu, X } from 'lucide-react';
+import { Network, LayoutDashboard, User, ShieldCheck, LogOut, ShoppingBag, Receipt, IdCard, Menu, X, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -15,8 +15,8 @@ export default function SidebarLayout() {
 
   const userLinks = [
     { label: 'Profile', path: '/profile', icon: User },
-    /* Placeholders for Phase 3 */
-    { label: 'Shop', path: '/shop', icon: ShoppingBag, disabled: true },
+    { label: 'Shop', path: '/shop', icon: ShoppingBag },
+    /* Placeholders for Phase 4 */
     { label: 'My Bills', path: '/my-bills', icon: Receipt, disabled: true },
   ];
 
@@ -24,6 +24,9 @@ export default function SidebarLayout() {
     { label: 'User Management', path: '/admin/users', icon: LayoutDashboard },
     { label: 'Network Hierarchy', path: '/admin/hierarchy', icon: Network },
     { label: 'Membership Programs', path: '/admin/memberships', icon: IdCard },
+    { label: 'Product Catalog', path: '/admin/products', icon: ShoppingBag },
+    { label: 'Product Categories', path: '/admin/categories', icon: LayoutDashboard },
+    { label: 'Order Tiers', path: '/admin/tiers', icon: Layers },
   ];
 
   const handleNavigate = (path) => {

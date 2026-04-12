@@ -7,6 +7,10 @@ import AdminDashboard from './pages/AdminDashboard';
 import Hierarchy from './pages/Hierarchy';
 import MembershipPrograms from './pages/MembershipPrograms';
 import MembershipProgramDetails from './pages/MembershipProgramDetails';
+import Products from './pages/Products';
+import Categories from './pages/Categories';
+import TierConfigs from './pages/TierConfigs';
+import Shop from './pages/Shop';
 import Profile from './pages/Profile';
 import ErrorPage from './pages/ErrorPage';
 import SidebarLayout from './components/layout/SidebarLayout';
@@ -81,7 +85,8 @@ const router = createBrowserRouter([
       {
         element: <SidebarLayout />,
         children: [
-          { path: '/profile', element: <Profile /> }
+          { path: '/profile', element: <Profile /> },
+          { path: '/shop', element: <Shop /> }
         ]
       }
     ]
@@ -96,7 +101,10 @@ const router = createBrowserRouter([
           { path: '/admin/users', element: <AdminDashboard /> },
           { path: '/admin/hierarchy', element: <Hierarchy /> },
           { path: '/admin/memberships', element: <MembershipPrograms /> },
-          { path: '/admin/memberships/:prefix', element: <MembershipProgramDetails /> }
+          { path: '/admin/memberships/:prefix', element: <MembershipProgramDetails /> },
+          { path: '/admin/products', element: <Products /> },
+          { path: '/admin/categories', element: <Categories /> },
+          { path: '/admin/tiers', element: <TierConfigs /> }
         ]
       }
     ]
