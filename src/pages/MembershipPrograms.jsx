@@ -56,14 +56,14 @@ export default function MembershipPrograms() {
   });
 
   return (
-    <div className="h-full text-foreground p-8 pt-6 overflow-y-auto">
-      <div className="max-w-5xl mx-auto space-y-8 pb-10">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-light tracking-tight">Membership <span className="font-semibold">Programs</span></h1>
+    <div className="h-full text-foreground p-4 md:p-8 pt-6 overflow-y-auto">
+      <div className="max-w-5xl mx-auto space-y-6 md:space-y-8 pb-10">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h1 className="text-2xl md:text-3xl font-light tracking-tight">Membership <span className="font-semibold">Programs</span></h1>
           <Button 
             onClick={() => setIsAdding(!isAdding)} 
             variant={isAdding ? "outline" : "default"}
-            className={!isAdding ? "bg-rose-600 hover:bg-rose-700 text-white" : ""}
+            className={!isAdding ? "bg-rose-600 hover:bg-rose-700 text-white w-full sm:w-auto" : "w-full sm:w-auto"}
           >
             {isAdding ? "Cancel" : <><Plus className="w-4 h-4 mr-2" /> New Program</>}
           </Button>
@@ -160,7 +160,7 @@ export default function MembershipPrograms() {
             <CardDescription>Managed membership tiers available for assignment.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border border-border">
+            <div className="rounded-md border border-border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>

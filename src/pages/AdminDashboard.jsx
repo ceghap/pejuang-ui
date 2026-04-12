@@ -282,13 +282,13 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="h-full text-foreground p-8 pt-6 overflow-y-auto">
-      <div className="max-w-6xl mx-auto space-y-8 pb-10">
+    <div className="h-full text-foreground p-4 md:p-8 pt-6 overflow-y-auto">
+      <div className="max-w-6xl mx-auto space-y-6 md:space-y-8 pb-10">
         <div className="flex items-center gap-4">
-          <h1 className="text-3xl font-light tracking-tight">Admin <span className="font-semibold">Dashboard</span></h1>
+          <h1 className="text-2xl md:text-3xl font-light tracking-tight">Admin <span className="font-semibold">Dashboard</span></h1>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="text-xl flex items-center gap-2">
@@ -464,24 +464,24 @@ export default function AdminDashboard() {
 
         {/* User Table Section */}
         <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-xl">User Directory</CardTitle>
               <CardDescription className="text-muted-foreground">Manage all registered prospects and admins.</CardDescription>
             </div>
-            <div className="relative w-64">
+            <div className="relative w-full sm:w-64">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
                 placeholder="Search users..."
-                className="pl-9 bg-background border-border"
+                className="pl-9 bg-background border-border w-full"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border border-border">
+            <div className="rounded-md border border-border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -570,8 +570,8 @@ export default function AdminDashboard() {
 
             {/* Pagination */}
             {usersData?.totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
-                <div>
+              <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-4 text-sm text-muted-foreground">
+                <div className="text-center sm:text-left">
                   Showing page {page} of {usersData.totalPages} ({usersData.totalCount} total)
                 </div>
                 <div className="flex gap-2">

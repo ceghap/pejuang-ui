@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { Network, LayoutDashboard, User, ShieldCheck, LogOut, ShoppingBag, Receipt, IdCard } from 'lucide-react';
+import { Network, LayoutDashboard, User, ShieldCheck, LogOut, ShoppingBag, Receipt, IdCard, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function SidebarLayout() {
   const { user, logout } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const isAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin';
 
@@ -23,6 +26,11 @@ export default function SidebarLayout() {
     { label: 'Membership Programs', path: '/admin/memberships', icon: IdCard },
   ];
 
+  const handleNavigate = (path) => {
+    navigate(path);
+    setIsSidebarOpen(false);
+  };
+
   const renderLinks = (links) => {
     return links.map((link) => {
       const isActive = location.pathname.startsWith(link.path);
@@ -33,8 +41,11 @@ export default function SidebarLayout() {
           key={link.path}
           variant={isActive ? 'secondary' : 'ghost'}
           disabled={link.disabled}
-          className={`w-full justify-start mb-1 ${isActive ? 'bg-secondary text-secondary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
-          onClick={() => navigate(link.path)}
+          className={cn(
+            "w-full justify-start mb-1",
+            isActive ? 'bg-secondary text-secondary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          )}
+          onClick={() => handleNavigate(link.path)}
         >
           <Icon className="w-5 h-5 mr-3" />
           {link.label}
@@ -47,13 +58,34 @@ export default function SidebarLayout() {
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
       
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 border-r border-border bg-card flex flex-col shrink-0">
+      <aside className={cn(
+        "fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-card flex flex-col shrink-0 transition-transform duration-300 lg:static lg:translate-x-0",
+        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
         
         {/* Brand Header */}
-        <div className="h-16 flex items-center px-6 border-b border-border shrink-0">
-          <ShieldCheck className="w-6 h-6 text-emerald-500 mr-2" />
-          <span className="text-xl tracking-wider font-semibold">PEJUANG</span>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-border shrink-0">
+          <div className="flex items-center">
+            <ShieldCheck className="w-6 h-6 text-emerald-500 mr-2" />
+            <span className="text-xl tracking-wider font-semibold">PEJUANG</span>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="lg:hidden p-0 h-8 w-8"
+            onClick={() => setIsSidebarOpen(false)}
+          >
+            <X className="w-5 h-5" />
+          </Button>
         </div>
 
         {/* Navigation Links */}
@@ -91,9 +123,28 @@ export default function SidebarLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 overflow-y-auto bg-background custom-scrollbar relative">
-        <Outlet />
-      </main>
+      <div className="flex flex-col flex-1 min-w-0">
+        
+        {/* Mobile Navbar */}
+        <header className="h-16 flex items-center px-4 border-b border-border bg-card lg:hidden shrink-0">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mr-3"
+            onClick={() => setIsSidebarOpen(true)}
+          >
+            <Menu className="w-6 h-6" />
+          </Button>
+          <div className="flex items-center">
+            <ShieldCheck className="w-5 h-5 text-emerald-500 mr-2" />
+            <span className="text-lg tracking-wider font-semibold">PEJUANG</span>
+          </div>
+        </header>
+
+        <main className="flex-1 min-w-0 overflow-y-auto bg-background custom-scrollbar relative">
+          <Outlet />
+        </main>
+      </div>
 
     </div>
   );

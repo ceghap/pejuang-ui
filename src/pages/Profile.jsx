@@ -22,15 +22,15 @@ export default function Profile() {
   }
 
   return (
-    <div className="h-full text-foreground p-8 pt-6 overflow-y-auto">
-      <div className="max-w-4xl mx-auto space-y-8 pb-10">
+    <div className="h-full text-foreground p-4 md:p-8 pt-6 overflow-y-auto">
+      <div className="max-w-4xl mx-auto space-y-6 md:space-y-8 pb-10">
         
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-light tracking-tight">Your <span className="font-semibold">Profile</span></h1>
+          <h1 className="text-2xl md:text-3xl font-light tracking-tight">Your <span className="font-semibold">Profile</span></h1>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-card border-border col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="bg-card border-border lg:col-span-2">
             <CardHeader>
               <CardTitle className="text-xl font-medium flex items-center gap-2">
                 <User className="text-blue-500 w-5 h-5" /> Account Details
