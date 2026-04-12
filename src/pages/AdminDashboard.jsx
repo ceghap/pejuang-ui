@@ -1,0 +1,981 @@
+import { useState, useRef, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm } from '@tanstack/react-form';
+import { UploadCloud, Users, Download, Search, ChevronLeft, ChevronRight, Loader2, AlertCircle, CheckCircle2, Pencil, Trash2, X, MoreHorizontal } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { fetchClient, downloadFile } from '@/api/fetchClient';
+
+import { toast } from 'sonner';
+
+function UserLookup({ label, value, onChange, initialData = null, placeholder = "Search by Name, IC or Phone..." }) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(initialData);
+
+  useEffect(() => {
+    if (initialData && !selectedUser) {
+      setSelectedUser(initialData);
+    }
+  }, [initialData]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const { data: results, isLoading } = useQuery({
+    queryKey: ['user-lookup', debouncedSearch],
+    queryFn: () => fetchClient(`/users/search?q=${encodeURIComponent(debouncedSearch)}`),
+    enabled: debouncedSearch.length >= 3,
+  });
+
+  // Fetch initial user if value exists but selectedUser doesn't
+  const { data: initialUser } = useQuery({
+    queryKey: ['user-by-id', value],
+    queryFn: () => fetchClient(`/users/${value}`),
+    enabled: !!value && !selectedUser,
+  });
+
+  useEffect(() => {
+    if (initialUser && !selectedUser) {
+      setSelectedUser(initialUser);
+    }
+  }, [initialUser, selectedUser]);
+
+  const handleSelect = (user) => {
+    setSelectedUser(user);
+    onChange(user.id);
+    setIsOpen(false);
+    setSearchTerm('');
+  };
+
+  const handleClear = () => {
+    setSelectedUser(null);
+    onChange(null);
+  };
+
+  return (
+    <div className="space-y-2 relative">
+      <Label>{label}</Label>
+      
+      {selectedUser ? (
+        <div className="flex items-center justify-between p-2 border border-border bg-muted/30 rounded-md">
+          <div className="text-sm">
+            <p className="font-medium">{selectedUser.name}</p>
+            <p className="text-xs text-muted-foreground">
+              {[selectedUser.icNumber, selectedUser.phoneNumber].filter(Boolean).join(' | ')}
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={handleClear} className="h-8 w-8 p-0">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : (
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
+          <Input
+            placeholder={placeholder}
+            className="pl-9 bg-background border-border"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setIsOpen(true);
+            }}
+            onFocus={() => setIsOpen(true)}
+          />
+          
+          {isOpen && (debouncedSearch.length >= 3 || isLoading) && (
+            <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+              {isLoading ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">Searching...</div>
+              ) : results?.length > 0 ? (
+                results.map(user => (
+                  <div
+                    key={user.id}
+                    className="p-3 hover:bg-muted cursor-pointer border-b border-border last:border-0"
+                    onClick={() => handleSelect(user)}
+                  >
+                    <p className="text-sm font-medium">{user.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {[user.icNumber, user.phoneNumber].filter(Boolean).join(' | ')}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div className="p-4 text-center text-sm text-muted-foreground">No users found</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      {isOpen && !selectedUser && (
+        <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+      )}
+    </div>
+  );
+}
+
+export default function AdminDashboard() {
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef(null);
+
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  
+  const [editingUser, setEditingUser] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [deletingUser, setDeletingUser] = useState(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // Reset page on search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const { data: usersData, isLoading: isLoadingUsers } = useQuery({
+    queryKey: ['users', page, debouncedSearch],
+    queryFn: () => fetchClient(`/users?page=${page}&limit=10${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}`)
+  });
+
+  const createUserMutation = useMutation({
+    mutationFn: (data) => fetchClient('/users', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+    onSuccess: (data) => {
+      toast.success("User created successfully!", {
+        description: `Temp Password: ${data.temporaryPassword}`,
+        duration: 10000,
+      });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      form.reset();
+    },
+    onError: (error) => {
+      toast.error("Failed to create user", {
+        description: error.message
+      });
+    }
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: (data) => fetchClient(`/users/${data.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+    onSuccess: () => {
+      toast.success("User updated successfully!");
+      setIsEditModalOpen(false);
+      setEditingUser(null);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['user-detail'] });
+    },
+    onError: (error) => {
+      toast.error("Failed to update user", {
+        description: error.message
+      });
+    }
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (id) => fetchClient(`/users/${id}`, {
+      method: 'DELETE'
+    }),
+    onSuccess: () => {
+      toast.success("User deleted successfully!");
+      setDeletingUser(null);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error) => {
+      toast.error("Failed to delete user", {
+        description: error.message
+      });
+      setDeletingUser(null);
+    }
+  });
+
+  const form = useForm({
+    defaultValues: {
+      name: '',
+      phoneNumber: '',
+      icNumber: '',
+      email: '',
+      role: 3,
+      uplineId: null,
+    },
+    onSubmit: async ({ value }) => {
+      createUserMutation.mutate(value);
+    },
+  });
+
+  const importMutation = useMutation({
+    mutationFn: (base64) => fetchClient('/users/import', {
+      method: 'POST',
+      body: JSON.stringify({ fileBase64: base64 })
+    }),
+    onSuccess: (data) => {
+      if (data.failed > 0) {
+        toast.warning("Import partially successful", {
+          description: `Imported: ${data.imported}. Failed: ${data.failed}. First error: ${data.errors[0]}`
+        });
+      } else {
+        toast.success(`Successfully imported ${data.imported} users.`);
+      }
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error) => {
+      toast.error("Import failed", {
+        description: error.message
+      });
+    }
+  });
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target.result;
+      importMutation.mutate(base64);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      await downloadFile('/users/import/template', 'Pejuang_Users_Template.xlsx');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  return (
+    <div className="h-full text-foreground p-8 pt-6 overflow-y-auto">
+      <div className="max-w-6xl mx-auto space-y-8 pb-10">
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-light tracking-tight">Admin <span className="font-semibold">Dashboard</span></h1>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Users className="text-blue-500 w-5 h-5" /> Manual User Creation
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">Add a single new prospect or administrator.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  form.handleSubmit();
+                }} 
+                className="space-y-4"
+              >
+                <div className="grid grid-cols-2 gap-4">
+                  <form.Field
+                    name="name"
+                    children={(field) => (
+                      <div className="space-y-2">
+                        <Label htmlFor={field.name}>Full Name *</Label>
+                        <Input 
+                          id={field.name}
+                          name={field.name}
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          required 
+                          className="bg-background border-border" 
+                        />
+                      </div>
+                    )}
+                  />
+                  <form.Field
+                    name="icNumber"
+                    children={(field) => (
+                      <div className="space-y-2">
+                        <Label htmlFor={field.name}>IC Number *</Label>
+                        <Input 
+                          id={field.name}
+                          name={field.name}
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          required 
+                          className="bg-background border-border" 
+                        />
+                      </div>
+                    )}
+                  />
+                  <form.Field
+                    name="phoneNumber"
+                    children={(field) => (
+                      <div className="space-y-2">
+                        <Label htmlFor={field.name}>Phone Number *</Label>
+                        <Input 
+                          id={field.name}
+                          name={field.name}
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          required 
+                          className="bg-background border-border" 
+                        />
+                      </div>
+                    )}
+                  />
+                  <form.Field
+                    name="email"
+                    children={(field) => (
+                      <div className="space-y-2">
+                        <Label htmlFor={field.name}>Email</Label>
+                        <Input 
+                          id={field.name}
+                          name={field.name}
+                          type="email"
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          className="bg-background border-border" 
+                        />
+                      </div>
+                    )}
+                  />
+                  <form.Field
+                    name="uplineId"
+                    children={(field) => (
+                      <div className="col-span-2">
+                        <UserLookup 
+                          label="Introducer (Upline)" 
+                          value={field.state.value} 
+                          onChange={(val) => field.handleChange(val)} 
+                        />
+                      </div>
+                    )}
+                  />
+                  <form.Field
+                    name="role"
+                    children={(field) => (
+                      <div className="space-y-2 col-span-2">
+                        <Label htmlFor={field.name}>Role</Label>
+                        <select
+                          id={field.name}
+                          name={field.name}
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(parseInt(e.target.value, 10))}
+                          className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
+                        >
+                          <option value={3}>User</option>
+                          <option value={2}>Admin</option>
+                          <option value={1}>SuperAdmin</option>
+                        </select>
+                      </div>
+                    )}
+                  />
+                </div>
+
+                <form.Subscribe
+                  selector={(state) => [state.canSubmit, state.isSubmitting]}
+                  children={([canSubmit, isSubmitting]) => (
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white" 
+                      disabled={!canSubmit || isSubmitting || createUserMutation.isPending}
+                    >
+                      {(isSubmitting || createUserMutation.isPending) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Create User
+                    </Button>
+                  )}
+                />
+              </form>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-6">
+            <Card className="bg-card border-border h-full">
+              <CardHeader>
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <UploadCloud className="text-emerald-500 w-5 h-5" /> Bulk Excel Import
+                </CardTitle>
+                <CardDescription className="text-muted-foreground">Upload an .xlsx file to provision multiple hierarchies.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <input
+                  type="file"
+                  accept=".xlsx"
+                  className="hidden"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                />
+                
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-32 border border-dashed border-emerald-500/30 bg-emerald-500/5 rounded-lg flex flex-col items-center justify-center text-muted-foreground hover:bg-emerald-500/10 transition-colors cursor-pointer"
+                >
+                  {importMutation.isPending ? (
+                    <Loader2 className="w-8 h-8 mb-2 text-emerald-500/50 animate-spin" />
+                  ) : (
+                    <UploadCloud className="w-8 h-8 mb-2 text-emerald-500/50" />
+                  )}
+                  <p className="text-sm">{importMutation.isPending ? 'Importing...' : 'Click or drag Excel file here'}</p>
+                </div>
+
+                <Button onClick={handleDownloadTemplate} variant="outline" className="w-full border-border hover:bg-accent hover:text-accent-foreground">
+                  <Download className="w-4 h-4 mr-2" /> Download Template
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* User Table Section */}
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-xl">User Directory</CardTitle>
+              <CardDescription className="text-muted-foreground">Manage all registered prospects and admins.</CardDescription>
+            </div>
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search users..."
+                className="pl-9 bg-background border-border"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>IC Number</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoadingUsers ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          <span className="text-muted-foreground">Loading users...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : usersData?.data?.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                        No users found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    usersData?.data?.map(user => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.name}</TableCell>
+                        <TableCell>{user.icNumber}</TableCell>
+                        <TableCell>{user.phoneNumber}</TableCell>
+                        <TableCell className="text-muted-foreground truncate max-w-[150px]" title={user.email}>
+                          {user.email || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            user.role === 'SuperAdmin' || user.role === 'Admin' 
+                              ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' 
+                              : 'bg-muted text-muted-foreground border border-border'
+                          }`}>
+                            {user.role}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuGroup>
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setEditingUser(user);
+                                    setIsEditModalOpen(true);
+                                  }}
+                                >
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit User
+                                </DropdownMenuItem>
+                              </DropdownMenuGroup>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuGroup>
+                                <DropdownMenuItem
+                                  className="text-rose-600 focus:text-rose-600 focus:bg-rose-50"
+                                  onClick={() => setDeletingUser(user)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete User
+                                </DropdownMenuItem>
+                              </DropdownMenuGroup>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination */}
+            {usersData?.totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
+                <div>
+                  Showing page {page} of {usersData.totalPages} ({usersData.totalCount} total)
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border hover:bg-accent text-foreground"
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" /> Prev
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-border hover:bg-accent text-foreground"
+                    onClick={() => setPage(p => Math.min(usersData.totalPages, p + 1))}
+                    disabled={page === usersData.totalPages}
+                  >
+                    Next <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+      </div>
+
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {editingUser && (
+            <EditUserModal 
+              user={editingUser} 
+              onClose={() => {
+                setIsEditModalOpen(false);
+                setEditingUser(null);
+              }}
+              onSave={(data) => updateUserMutation.mutate({ ...data, id: editingUser.id })}
+              isSaving={updateUserMutation.isPending}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        isOpen={!!deletingUser}
+        onClose={() => setDeletingUser(null)}
+        onConfirm={() => deleteUserMutation.mutate(deletingUser.id)}
+        isLoading={deleteUserMutation.isPending}
+        title="Delete User"
+        description={`Are you sure you want to delete ${deletingUser?.name}? This action cannot be undone.`}
+      />
+    </div>
+  );
+}
+
+export function EditUserModal({ user: summaryUser, onClose, onSave, isSaving }) {
+  const { data: user, isLoading } = useQuery({
+    queryKey: ['user-detail', summaryUser.id],
+    queryFn: () => fetchClient(`/users/${summaryUser.id}`),
+    enabled: !!summaryUser?.id
+  });
+
+  if (isLoading) {
+    return (
+      <div className="p-12 flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <p className="text-sm text-muted-foreground font-medium italic">Fetching latest user details...</p>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  return (
+    <EditUserForm 
+      user={user} 
+      onClose={onClose} 
+      onSave={onSave} 
+      isSaving={isSaving} 
+    />
+  );
+}
+
+function EditUserForm({ user, onClose, onSave, isSaving }) {
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('details');
+
+  const form = useForm({
+    defaultValues: {
+      name: user.name,
+      phoneNumber: user.phoneNumber,
+      icNumber: user.icNumber,
+      email: user.email || '',
+      role: user.role === 'SuperAdmin' ? 1 : user.role === 'Admin' ? 2 : 3,
+      uplineId: user.uplineId || null,
+    },
+    onSubmit: async ({ value }) => {
+      onSave(value);
+    },
+  });
+
+  const { data: downlinesData, isLoading: isLoadingDownlines } = useQuery({
+    queryKey: ['user-downlines', user.id],
+    queryFn: () => fetchClient(`/users/${user.id}/downlines`),
+    enabled: activeTab === 'downlines'
+  });
+
+  const { data: membershipsData, isLoading: isLoadingMemberships } = useQuery({
+    queryKey: ['user-memberships', user.id],
+    queryFn: () => fetchClient(`/users/${user.id}`), // The user detail endpoint already includes memberships
+    enabled: activeTab === 'memberships'
+  });
+
+  const { data: programs } = useQuery({
+    queryKey: ['membership-programs'],
+    queryFn: () => fetchClient('/memberships/programs'),
+    enabled: activeTab === 'memberships'
+  });
+
+  const assignMembershipMutation = useMutation({
+    mutationFn: (data) => fetchClient(`/users/${user.id}/memberships`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+    onSuccess: () => {
+      toast.success("Membership assigned successfully!");
+      queryClient.invalidateQueries({ queryKey: ['user-memberships', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['user-detail', user.id] });
+    },
+    onError: (error) => {
+      toast.error("Failed to assign membership", { description: error.message });
+    }
+  });
+
+  const addDownlineMutation = useMutation({
+    mutationFn: (downlineId) => fetchClient(`/users/${downlineId}/upline`, {
+      method: 'PUT',
+      body: JSON.stringify({ uplineId: user.id })
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-downlines', user.id] });
+    }
+  });
+
+  const removeDownlineMutation = useMutation({
+    mutationFn: (downlineId) => fetchClient(`/users/${downlineId}/upline`, {
+      method: 'PUT',
+      body: JSON.stringify({ uplineId: null })
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-downlines', user.id] });
+    }
+  });
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Edit User</DialogTitle>
+        <DialogDescription>
+          Managing {user.name}
+        </DialogDescription>
+      </DialogHeader>
+      
+      <div className="flex gap-4 border-b border-border mt-2">
+        <button 
+          className={`pb-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'details' ? 'border-blue-500 text-blue-500' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          onClick={() => setActiveTab('details')}
+        >
+          Details
+        </button>
+        <button 
+          className={`pb-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'downlines' ? 'border-blue-500 text-blue-500' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          onClick={() => setActiveTab('downlines')}
+        >
+          Downlines
+        </button>
+        <button 
+          className={`pb-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'memberships' ? 'border-blue-500 text-blue-500' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          onClick={() => setActiveTab('memberships')}
+        >
+          Memberships
+        </button>
+      </div>
+
+      <div className="pt-4">
+        {activeTab === 'details' ? (
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }} 
+            className="space-y-4"
+          >
+            <div className="grid grid-cols-2 gap-4">
+              <form.Field
+                name="name"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={`edit-${field.name}`}>Full Name *</Label>
+                    <Input 
+                      id={`edit-${field.name}`}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      required 
+                      className="bg-background border-border" 
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="icNumber"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={`edit-${field.name}`}>IC Number *</Label>
+                    <Input 
+                      id={`edit-${field.name}`}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      required 
+                      className="bg-background border-border" 
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="phoneNumber"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={`edit-${field.name}`}>Phone Number *</Label>
+                    <Input 
+                      id={`edit-${field.name}`}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      required 
+                      className="bg-background border-border" 
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="email"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={`edit-${field.name}`}>Email</Label>
+                    <Input 
+                      id={`edit-${field.name}`}
+                      type="email"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      className="bg-background border-border" 
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="uplineId"
+                children={(field) => (
+                  <div className="col-span-2">
+                    <UserLookup 
+                      label="Introducer (Upline)" 
+                      value={field.state.value} 
+                      initialData={user.upline}
+                      onChange={(val) => field.handleChange(val)} 
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="role"
+                children={(field) => (
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor={`edit-${field.name}`}>Role</Label>
+                    <select
+                      id={`edit-${field.name}`}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(parseInt(e.target.value, 10))}
+                      className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
+                    >
+                      <option value={3}>User</option>
+                      <option value={2}>Admin</option>
+                      <option value={1}>SuperAdmin</option>
+                    </select>
+                  </div>
+                )}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <form.Subscribe
+                selector={(state) => [state.canSubmit, state.isSubmitting]}
+                children={([canSubmit, isSubmitting]) => (
+                  <Button 
+                    type="submit" 
+                    className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]" 
+                    disabled={!canSubmit || isSubmitting || isSaving}
+                  >
+                    {(isSubmitting || isSaving) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Save Changes
+                  </Button>
+                )}
+              />
+            </div>
+          </form>
+        ) : activeTab === 'downlines' ? (
+          <div className="space-y-4">
+            <div className="pb-4 border-b border-border">
+              <UserLookup 
+                label="Add New Downline" 
+                placeholder="Search user to add to team..."
+                value={null}
+                onChange={(val) => val && addDownlineMutation.mutate(val)}
+              />
+            </div>
+
+            <div className="max-h-60 overflow-y-auto space-y-2 custom-scrollbar pr-1">
+              <Label>Current Team ({downlinesData?.count || 0})</Label>
+              {isLoadingDownlines ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">Loading team...</div>
+              ) : downlinesData?.downlines?.length > 0 ? (
+                downlinesData.downlines.map(dl => (
+                  <div key={dl.id} className="flex items-center justify-between p-2 rounded-md border border-border bg-muted/20 group">
+                    <div>
+                      <p className="text-sm font-medium">{dl.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{dl.icNumber} | {dl.phoneNumber}</p>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => removeDownlineMutation.mutate(dl.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-md">
+                  No downlines assigned to this user.
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="p-4 bg-muted/30 border border-border rounded-lg space-y-4">
+              <p className="text-sm font-medium">Assign New Membership</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Program Type</Label>
+                  <select 
+                    id="program-type-select"
+                    className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val) assignMembershipMutation.mutate({ programType: val });
+                      e.target.value = "";
+                    }}
+                  >
+                    <option value="">Select Program...</option>
+                    {programs?.map(p => (
+                      <option key={p.id} value={p.name}>{p.name} ({p.prefix})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground italic">
+                * Assigning a membership will automatically generate a unique sequential ID.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Active Memberships ({membershipsData?.memberships?.length || 0})</Label>
+              {isLoadingMemberships ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">Loading memberships...</div>
+              ) : membershipsData?.memberships?.length > 0 ? (
+                <div className="grid grid-cols-1 gap-2">
+                  {membershipsData.memberships.map(m => (
+                    <div key={m.id} className="flex items-center justify-between p-3 rounded-md border border-rose-500/20 bg-rose-500/5 group">
+                      <div>
+                        <p className="text-[10px] font-bold text-rose-500 uppercase tracking-widest">{m.programType}</p>
+                        <p className="text-lg font-bold font-mono tracking-tight">{m.fullMemberId}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] text-muted-foreground">Assigned on</p>
+                        <p className="text-xs font-medium">{new Date(m.assignedAt).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-md italic">
+                  No memberships assigned yet.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
