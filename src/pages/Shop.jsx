@@ -342,14 +342,22 @@ export default function Shop() {
                 <div className="text-sm text-muted-foreground italic px-1">
                   Full payment of RM {selectedProduct?.price.toLocaleString()} will be required. Commission will be credited to introducer immediately.
                 </div>
-              ) : (
+              {!buyForm.useStore(state => state.values.isCash) && (
                 <buyForm.Field
                   name="depositAmount"
+                  validators={{
+                    onChange: ({ value }) => {
+                      const min = selectedProduct?.price * 0.1;
+                      if (parseFloat(value) < min) return `Minimum RM ${min.toLocaleString()} required`;
+                      if (parseFloat(value) > selectedProduct?.price) return "Deposit cannot exceed price";
+                      return undefined;
+                    }
+                  }}
                   children={(field) => (
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
                         <Label htmlFor={field.name}>Initial Deposit (RM)</Label>
-                        <span className="text-[10px] text-muted-foreground italic">Min. 10% (RM {(selectedProduct?.price * 0.1).toLocaleString()})</span>
+                        <span className="text-[10px] text-emerald-600 font-medium italic">Min. 10% required</span>
                       </div>
                       <Input
                         id={field.name}
@@ -358,7 +366,13 @@ export default function Shop() {
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
+                        className={field.state.meta.errors.length ? "border-destructive" : ""}
                       />
+                      {field.state.meta.errors.length > 0 ? (
+                        <p className="text-[10px] text-destructive">{field.state.meta.errors[0]}</p>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground">Paying a higher deposit reduces your total remaining balance.</p>
+                      )}
                     </div>
                   )}
                 />
