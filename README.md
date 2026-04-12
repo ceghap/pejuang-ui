@@ -19,9 +19,10 @@ We have successfully completed **Phase 3**. The UI now supports:
 
 - **Identity & Access**: Dual-login (IC/Phone), role-based access control, and mandatory password reset flows.
 - **Hierarchy Management**: Visual tree representation of introducers and downlines.
-- **Product Catalog**: Dynamic management of categories and products (including historical seed data like Gerak, Susuk, and Selendang).
+- **Product Catalog**: Dynamic management of categories and products (including editing details and historical seed data).
 - **Finance Engine**: 
-  - Automated installment tiering (Silver, Gold, Platinum).
+  - Automated installment tiering (Silver, Gold, Platinum, or custom tiers).
+  - **Dynamic Tier Management**: Admins can configure price thresholds and rates.
   - Commission distribution visualization.
   - Order creation with mandatory 10% deposit.
 
