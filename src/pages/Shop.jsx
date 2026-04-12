@@ -58,8 +58,8 @@ function UserLookup({ value, onChange }) {
         </div>
       ) : (
         <div className="relative">
-          <Input 
-            placeholder="Search member name or phone..." 
+          <Input
+            placeholder="Search member name or phone..."
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setIsOpen(true); }}
             onFocus={() => setIsOpen(true)}
@@ -110,6 +110,11 @@ export default function Shop() {
     queryFn: () => fetchClient('/finance/categories'),
   });
 
+  const { data: tierConfigs } = useQuery({
+    queryKey: ['tiers'],
+    queryFn: () => fetchClient('/finance/tiers'),
+  });
+
   const buyMutation = useMutation({
     mutationFn: (payload) => fetchClient('/finance/orders', {
       method: 'POST',
@@ -128,29 +133,51 @@ export default function Shop() {
   const buyForm = useForm({
     defaultValues: {
       depositAmount: '',
+      isCash: false,
       userId: null,
     },
     onSubmit: async ({ value }) => {
       buyMutation.mutate({
         productId: selectedProduct.id,
         depositAmount: parseFloat(value.depositAmount),
+        isCash: value.isCash,
         userId: value.userId || undefined
       });
     },
   });
 
   useEffect(() => {
-    if (selectedProduct) {
-      const minDeposit = (selectedProduct.price * 0.1).toFixed(2);
-      buyForm.setFieldValue('depositAmount', minDeposit);
+    if (selectedProduct && isBuyDialogOpen) {
+      const isCash = buyForm.getFieldValue('isCash');
+      if (isCash) {
+        buyForm.setFieldValue('depositAmount', selectedProduct.price.toString());
+      } else {
+        const minDeposit = (selectedProduct.price * 0.1).toFixed(2);
+        buyForm.setFieldValue('depositAmount', minDeposit);
+      }
     }
-  }, [selectedProduct]);
+  }, [selectedProduct, isBuyDialogOpen]);
+
+  const handleIsCashChange = (val) => {
+    buyForm.setFieldValue('isCash', val);
+    if (val) {
+      buyForm.setFieldValue('depositAmount', selectedProduct.price.toString());
+    } else {
+      buyForm.setFieldValue('depositAmount', (selectedProduct.price * 0.1).toFixed(2));
+    }
+  };
 
   const filteredProducts = products?.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || p.categoryId === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const getCurrentTierInfo = (price) => {
+    if (!tierConfigs) return 'Calculating...';
+    const config = tierConfigs.find(c => price >= c.minPrice && price <= c.maxPrice);
+    return config ? `${config.tier} (RM${config.installmentRate}/mo)` : 'N/A';
+  };
 
   if (productsLoading || categoriesLoading) {
     return (
@@ -180,17 +207,17 @@ export default function Shop() {
           />
         </div>
         <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
-          <Button 
-            variant={selectedCategory === 'all' ? 'default' : 'outline'} 
+          <Button
+            variant={selectedCategory === 'all' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setSelectedCategory('all')}
           >
             All
           </Button>
           {categories?.map(c => (
-            <Button 
-              key={c.id} 
-              variant={selectedCategory === c.id ? 'default' : 'outline'} 
+            <Button
+              key={c.id}
+              variant={selectedCategory === c.id ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSelectedCategory(c.id)}
               className="whitespace-nowrap"
@@ -215,15 +242,15 @@ export default function Shop() {
                 {product.description || "No description provided for this exclusive product."}
               </p>
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Investment Price</p>
+                <p className="text-xs text-muted-foreground">Price</p>
                 <p className="text-2xl font-bold text-foreground">
                   RM {product.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
               </div>
             </CardContent>
             <CardFooter className="pt-0 border-t border-border/50 bg-muted/20">
-              <Button 
-                className="w-full mt-4" 
+              <Button
+                className="w-full mt-4"
                 onClick={() => {
                   setSelectedProduct(product);
                   setIsBuyDialogOpen(true);
@@ -267,44 +294,74 @@ export default function Shop() {
                 <span className="text-muted-foreground">Total Price:</span>
                 <span className="font-bold text-foreground">RM {selectedProduct?.price.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Installment Tier:</span>
-                <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                  {selectedProduct?.price < 25000 ? 'Silver (RM150/mo)' : 
-                   selectedProduct?.price <= 50000 ? 'Gold (RM250/mo)' : 'Platinum (RM350/mo)'}
-                </span>
-              </div>
+              
+              <buyForm.Field
+                name="isCash"
+                children={(field) => (
+                  <div className="flex items-center justify-between pt-2">
+                    <Label htmlFor="isCash" className="cursor-pointer">Full Cash Purchase</Label>
+                    <input
+                      id="isCash"
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                      checked={field.state.value}
+                      onChange={(e) => handleIsCashChange(e.target.checked)}
+                    />
+                  </div>
+                )}
+              />
+
+              <buyForm.Subscribe
+                selector={(state) => state.values.isCash}
+                children={(isCash) => !isCash ? (
+                  <div className="flex justify-between pt-2 border-t border-emerald-500/10">
+                    <span className="text-muted-foreground">Installment Tier:</span>
+                    <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                      {getCurrentTierInfo(selectedProduct?.price)}
+                    </span>
+                  </div>
+                ) : null}
+              />
             </div>
 
             {isAdmin && (
               <buyForm.Field
                 name="userId"
                 children={(field) => (
-                  <UserLookup 
-                    value={field.state.value} 
-                    onChange={(val) => field.handleChange(val)} 
+                  <UserLookup
+                    value={field.state.value}
+                    onChange={(val) => field.handleChange(val)}
                   />
                 )}
               />
             )}
 
-            <buyForm.Field
-              name="depositAmount"
-              children={(field) => (
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <Label htmlFor={field.name}>Initial Deposit (RM)</Label>
-                    <span className="text-[10px] text-muted-foreground italic">Min. 10% (RM {(selectedProduct?.price * 0.1).toLocaleString()})</span>
-                  </div>
-                  <Input
-                    id={field.name}
-                    type="number"
-                    step="0.01"
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                  />
+            <buyForm.Subscribe
+              selector={(state) => state.values.isCash}
+              children={(isCash) => isCash ? (
+                <div className="text-sm text-muted-foreground italic px-1">
+                  Full payment of RM {selectedProduct?.price.toLocaleString()} will be required. Commission will be credited to introducer immediately.
                 </div>
+              ) : (
+                <buyForm.Field
+                  name="depositAmount"
+                  children={(field) => (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <Label htmlFor={field.name}>Initial Deposit (RM)</Label>
+                        <span className="text-[10px] text-muted-foreground italic">Min. 10% (RM {(selectedProduct?.price * 0.1).toLocaleString()})</span>
+                      </div>
+                      <Input
+                        id={field.name}
+                        type="number"
+                        step="0.01"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                      />
+                    </div>
+                  )}
+                />
               )}
             />
 

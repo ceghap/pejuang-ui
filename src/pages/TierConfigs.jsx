@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from '@tanstack/react-form';
-import { Layers, Loader2, Pencil, Save, X, Plus, Trash2 } from 'lucide-react';
+import { Layers, Loader2, Pencil, Trash2, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,13 +21,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { fetchClient } from '@/api/fetchClient';
 import { toast } from 'sonner';
 
 export default function TierConfigs() {
   const queryClient = useQueryClient();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTier, setEditingTier] = useState(null);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [deleteTierName, setDeleteTierName] = useState(null);
 
   const { data: tiers, isLoading } = useQuery({
     queryKey: ['tiers'],
@@ -35,14 +37,14 @@ export default function TierConfigs() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (config) => fetchClient(`/finance/tiers/${config.tier}`, {
+    mutationFn: (config) => fetchClient(`/finance/tiers/${editingTier?.tier || config.tier}`, {
       method: 'PUT',
       body: JSON.stringify(config),
     }),
     onSuccess: () => {
       queryClient.invalidateQueries(['tiers']);
+      setIsDialogOpen(false);
       setEditingTier(null);
-      setIsAddDialogOpen(false);
       toast.success('Tier configuration saved');
     },
     onError: (error) => {
@@ -56,10 +58,12 @@ export default function TierConfigs() {
     }),
     onSuccess: () => {
       queryClient.invalidateQueries(['tiers']);
+      setDeleteTierName(null);
       toast.success('Tier deleted');
     },
     onError: (error) => {
       toast.error(error.message || 'Delete failed');
+      setDeleteTierName(null);
     }
   });
 
@@ -80,31 +84,36 @@ export default function TierConfigs() {
     },
   });
 
-  const startEdit = (tier) => {
-    setEditingTier(tier);
-    form.reset({
-      tier: tier.tier,
-      minPrice: tier.minPrice.toString(),
-      maxPrice: tier.maxPrice.toString(),
-      installmentRate: tier.installmentRate.toString(),
-    });
-  };
-
-  const startAdd = () => {
-    setEditingTier(null);
-    form.reset({
-      tier: '',
-      minPrice: '',
-      maxPrice: '',
-      installmentRate: '',
-    });
-    setIsAddDialogOpen(true);
-  };
-
-  const handleDelete = (tier) => {
-    if (window.confirm(`Are you sure you want to delete the ${tier} tier?`)) {
-      deleteMutation.mutate(tier);
+  useEffect(() => {
+    if (editingTier) {
+      form.reset({
+        tier: editingTier.tier,
+        minPrice: editingTier.minPrice.toString(),
+        maxPrice: editingTier.maxPrice.toString(),
+        installmentRate: editingTier.installmentRate.toString(),
+      });
+    } else {
+      form.reset({
+        tier: '',
+        minPrice: '',
+        maxPrice: '',
+        installmentRate: '',
+      });
     }
+  }, [editingTier, isDialogOpen]);
+
+  const handleEdit = (tier) => {
+    setEditingTier(tier);
+    setIsDialogOpen(true);
+  };
+
+  const handleAdd = () => {
+    setEditingTier(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteClick = (tier) => {
+    setDeleteTierName(tier);
   };
 
   if (isLoading) {
@@ -122,7 +131,7 @@ export default function TierConfigs() {
           <h1 className="text-3xl font-bold tracking-tight">Order Tiers</h1>
           <p className="text-muted-foreground mt-1">Configure price thresholds and installment rates.</p>
         </div>
-        <Button onClick={startAdd}>
+        <Button onClick={handleAdd}>
           <Plus className="mr-2 h-4 w-4" /> Add New Tier
         </Button>
       </div>
@@ -149,81 +158,17 @@ export default function TierConfigs() {
               {tiers?.map((tier) => (
                 <TableRow key={tier.tier}>
                   <TableCell className="font-bold">{tier.tier}</TableCell>
-                  <TableCell>
-                    {editingTier?.tier === tier.tier ? (
-                      <form.Field
-                        name="minPrice"
-                        children={(field) => (
-                          <Input 
-                            type="number" 
-                            value={field.state.value}
-                            onBlur={field.handleBlur}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            className="w-32"
-                          />
-                        )}
-                      />
-                    ) : (
-                      tier.minPrice.toLocaleString()
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {editingTier?.tier === tier.tier ? (
-                      <form.Field
-                        name="maxPrice"
-                        children={(field) => (
-                          <Input 
-                            type="number" 
-                            value={field.state.value}
-                            onBlur={field.handleBlur}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            className="w-32"
-                          />
-                        )}
-                      />
-                    ) : (
-                      tier.maxPrice.toLocaleString()
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {editingTier?.tier === tier.tier ? (
-                      <form.Field
-                        name="installmentRate"
-                        children={(field) => (
-                          <Input 
-                            type="number" 
-                            value={field.state.value}
-                            onBlur={field.handleBlur}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            className="w-32"
-                          />
-                        )}
-                      />
-                    ) : (
-                      tier.installmentRate.toLocaleString()
-                    )}
-                  </TableCell>
+                  <TableCell>{tier.minPrice.toLocaleString()}</TableCell>
+                  <TableCell>{tier.maxPrice.toLocaleString()}</TableCell>
+                  <TableCell>{tier.installmentRate.toLocaleString()}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      {editingTier?.tier === tier.tier ? (
-                        <>
-                          <Button size="sm" onClick={() => form.handleSubmit()}>
-                            <Save className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => setEditingTier(null)}>
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button size="sm" variant="ghost" onClick={() => startEdit(tier)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(tier.tier)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(tier)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteClick(tier.tier)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -233,11 +178,13 @@ export default function TierConfigs() {
         </CardContent>
       </Card>
 
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
-            <DialogTitle>Add New Tier</DialogTitle>
-            <DialogDescription>Create a new price tier with a custom installment rate.</DialogDescription>
+            <DialogTitle>{editingTier ? 'Edit Tier' : 'Add New Tier'}</DialogTitle>
+            <DialogDescription>
+              {editingTier ? `Updating thresholds for ${editingTier.tier} tier.` : 'Create a new price tier with a custom installment rate.'}
+            </DialogDescription>
           </DialogHeader>
           <form
             onSubmit={(e) => {
@@ -250,8 +197,9 @@ export default function TierConfigs() {
               name="tier"
               children={(field) => (
                 <div className="space-y-2">
-                  <Label>Tier Name</Label>
+                  <Label htmlFor={field.name}>Tier Name</Label>
                   <Input 
+                    id={field.name}
                     value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
@@ -265,8 +213,9 @@ export default function TierConfigs() {
                 name="minPrice"
                 children={(field) => (
                   <div className="space-y-2">
-                    <Label>Min Price</Label>
+                    <Label htmlFor={field.name}>Min Price</Label>
                     <Input 
+                      id={field.name}
                       type="number"
                       value={field.state.value}
                       onBlur={field.handleBlur}
@@ -280,8 +229,9 @@ export default function TierConfigs() {
                 name="maxPrice"
                 children={(field) => (
                   <div className="space-y-2">
-                    <Label>Max Price</Label>
+                    <Label htmlFor={field.name}>Max Price</Label>
                     <Input 
+                      id={field.name}
                       type="number"
                       value={field.state.value}
                       onBlur={field.handleBlur}
@@ -296,8 +246,9 @@ export default function TierConfigs() {
               name="installmentRate"
               children={(field) => (
                 <div className="space-y-2">
-                  <Label>Installment Rate (RM/month)</Label>
+                  <Label htmlFor={field.name}>Installment Rate (RM/month)</Label>
                   <Input 
+                    id={field.name}
                     type="number"
                     value={field.state.value}
                     onBlur={field.handleBlur}
@@ -308,14 +259,23 @@ export default function TierConfigs() {
               )}
             />
             <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={updateMutation.isLoading}>
-                {updateMutation.isLoading ? 'Adding...' : 'Add Tier'}
+                {updateMutation.isLoading ? 'Processing...' : (editingTier ? 'Update Tier' : 'Add Tier')}
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        isOpen={!!deleteTierName}
+        onClose={() => setDeleteTierName(null)}
+        onConfirm={() => deleteMutation.mutate(deleteTierName)}
+        title="Delete Order Tier"
+        description={`Are you sure you want to delete the ${deleteTierName} tier? This action cannot be undone.`}
+        isLoading={deleteMutation.isLoading}
+      />
     </div>
   );
 }

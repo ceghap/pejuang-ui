@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from '@tanstack/react-form';
-import { ShoppingBag, Plus, Loader2, Search, Info, Pencil } from 'lucide-react';
+import { ShoppingBag, Plus, Loader2, Search, Info, Pencil, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { fetchClient } from '@/api/fetchClient';
 import { toast } from 'sonner';
 
@@ -28,6 +29,7 @@ export default function Products() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
   const [search, setSearch] = useState('');
 
   const { data: products, isLoading: productsLoading } = useQuery({
@@ -68,6 +70,21 @@ export default function Products() {
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to update product');
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => fetchClient(`/finance/products/${id}`, {
+      method: 'DELETE',
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['products']);
+      setDeleteId(null);
+      toast.success('Product deleted successfully');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to delete product');
+      setDeleteId(null);
     }
   });
 
@@ -118,6 +135,10 @@ export default function Products() {
     setIsDialogOpen(true);
   };
 
+  const handleDeleteClick = (id) => {
+    setDeleteId(id);
+  };
+
   const filteredProducts = products?.filter(p => 
     p.name.toLowerCase().includes(search.toLowerCase()) || 
     p.category?.name.toLowerCase().includes(search.toLowerCase())
@@ -166,7 +187,7 @@ export default function Products() {
                 <TableHead>Product Category</TableHead>
                 <TableHead className="text-right">Price (RM)</TableHead>
                 <TableHead className="text-right">Commission (RM)</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -189,10 +210,15 @@ export default function Products() {
                   <TableCell className="text-right font-mono text-emerald-600 dark:text-emerald-400">
                     {product.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => handleEdit(product)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(product)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteClick(product.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -333,6 +359,15 @@ export default function Products() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => deleteMutation.mutate(deleteId)}
+        title="Delete Product"
+        description="Are you sure you want to delete this product? This action cannot be undone and will fail if there are active orders associated with it."
+        isLoading={deleteMutation.isLoading}
+      />
     </div>
   );
 }
