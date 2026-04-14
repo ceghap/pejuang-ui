@@ -153,7 +153,10 @@ export default function Orders() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Package className="w-3.5 h-3.5 text-blue-500" />
-                            <span className="text-sm font-semibold">{o.product?.name}</span>
+                            <span className="text-sm font-semibold truncate max-w-[150px]">
+                              {o.orderItems?.[0]?.product?.name || o.product?.name || 'Unknown'}
+                              {o.orderItems?.length > 1 && ` +${o.orderItems.length - 1} more`}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>

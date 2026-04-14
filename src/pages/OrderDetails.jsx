@@ -12,7 +12,8 @@ import {
   DollarSign,
   TrendingUp,
   History,
-  Trash2
+  Trash2,
+  Package
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -177,8 +178,21 @@ export default function OrderDetails() {
         <Card className="md:col-span-2 overflow-hidden border-border/50 shadow-sm bg-card/50">
             <CardHeader className="bg-muted/30 pb-4">
                 <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle className="text-xl">{order.product?.name}</CardTitle>
+                    <div className="space-y-2 flex-1 mr-4">
+                        <CardTitle className="text-xl">
+                            {order.orderItems?.length > 0 ? (
+                                <div className="space-y-1">
+                                    {order.orderItems.map((oi, idx) => (
+                                        <div key={idx} className="flex items-center gap-2">
+                                            <Package className="w-4 h-4 text-blue-500" />
+                                            <span>{oi.product?.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                order.product?.name || 'Unknown'
+                            )}
+                        </CardTitle>
                         <CardDescription>Order ID: {order.id.substring(0,8).toUpperCase()}</CardDescription>
                     </div>
                     <div className="text-right">

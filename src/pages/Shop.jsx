@@ -97,7 +97,7 @@ export default function Shop() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [cart, setCart] = useState([]);
   const [isBuyDialogOpen, setIsBuyDialogOpen] = useState(false);
 
   const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'SuperAdmin';
@@ -117,6 +117,19 @@ export default function Shop() {
     queryFn: () => fetchClient('/finance/tiers'),
   });
 
+  const totalPrice = cart.reduce((sum, item) => sum + item.price, 0);
+
+  const toggleCartItem = (product) => {
+    setCart(prev => {
+      const exists = prev.find(p => p.id === product.id);
+      if (exists) {
+        return prev.filter(p => p.id !== product.id);
+      } else {
+        return [...prev, product];
+      }
+    });
+  };
+
   const buyMutation = useMutation({
     mutationFn: (payload) => fetchClient('/finance/orders', {
       method: 'POST',
@@ -125,6 +138,7 @@ export default function Shop() {
     onSuccess: (data) => {
       queryClient.invalidateQueries(['orders']);
       setIsBuyDialogOpen(false);
+      setCart([]);
       toast.success('Order placed successfully!');
       // Redirect to the order details page
       navigate(`/orders/${data.id}`);
@@ -154,7 +168,7 @@ export default function Shop() {
     },
     onSubmit: async ({ value }) => {
       buyMutation.mutate({
-        productId: selectedProduct.id,
+        productIds: cart.map(p => p.id),
         depositAmount: parseFloat(value.depositAmount),
         isCash: value.isCash,
         userId: value.userId || undefined,
@@ -166,24 +180,24 @@ export default function Shop() {
   });
 
   useEffect(() => {
-    if (selectedProduct && isBuyDialogOpen) {
+    if (cart.length > 0 && isBuyDialogOpen) {
       const isCash = buyForm.getFieldValue('isCash');
       if (isCash) {
-        buyForm.setFieldValue('depositAmount', selectedProduct.price.toString());
+        buyForm.setFieldValue('depositAmount', totalPrice.toString());
       } else {
-        const minDeposit = (selectedProduct.price * 0.1).toFixed(2);
+        const minDeposit = (totalPrice * 0.1).toFixed(2);
         buyForm.setFieldValue('depositAmount', minDeposit);
       }
     }
-  }, [selectedProduct, isBuyDialogOpen]);
+  }, [totalPrice, isBuyDialogOpen]);
 
   const handleIsCashChange = (val) => {
     buyForm.setFieldValue('isCash', val);
     if (val) {
-      buyForm.setFieldValue('depositAmount', selectedProduct.price.toString());
+      buyForm.setFieldValue('depositAmount', totalPrice.toString());
       buyForm.setFieldValue('isHistorical', false);
     } else {
-      buyForm.setFieldValue('depositAmount', (selectedProduct.price * 0.1).toFixed(2));
+      buyForm.setFieldValue('depositAmount', (totalPrice * 0.1).toFixed(2));
     }
   };
 
@@ -208,11 +222,11 @@ export default function Shop() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto pb-32">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Panji Alam Shop</h1>
-          <p className="text-muted-foreground mt-1">Select a product to start your exclusive membership journey.</p>
+          <p className="text-muted-foreground mt-1">Select multiple products to start your exclusive membership journey.</p>
         </div>
       </div>
 
@@ -249,38 +263,42 @@ export default function Shop() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredProducts?.map((product) => (
-          <Card key={product.id} className="flex flex-col h-full hover:shadow-lg transition-shadow border-border/50 bg-card/50">
-            <CardHeader className="pb-2">
-              <div className="text-xs font-semibold text-emerald-500 uppercase tracking-wider mb-1">
-                {product.category?.name}
-              </div>
-              <CardTitle className="text-xl line-clamp-1">{product.name}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 pb-4">
-              <p className="text-sm text-muted-foreground line-clamp-3 mb-4 min-h-[60px]">
-                {product.description || "No description provided for this exclusive product."}
-              </p>
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Price</p>
-                <p className="text-2xl font-bold text-foreground">
-                  RM {product.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        {filteredProducts?.map((product) => {
+          const isInCart = cart.find(p => p.id === product.id);
+          return (
+            <Card key={product.id} className={`flex flex-col h-full hover:shadow-lg transition-all border-border/50 ${isInCart ? 'ring-2 ring-emerald-500 bg-emerald-500/5' : 'bg-card/50'}`}>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                  <div className="text-xs font-semibold text-emerald-500 uppercase tracking-wider mb-1">
+                    {product.category?.name}
+                  </div>
+                  {isInCart && <CheckCircle2 className="h-5 w-5 text-emerald-500" />}
+                </div>
+                <CardTitle className="text-xl line-clamp-1">{product.name}</CardTitle>
+              </CardHeader>
+              <CardContent className="flex-1 pb-4">
+                <p className="text-sm text-muted-foreground line-clamp-3 mb-4 min-h-[60px]">
+                  {product.description || "No description provided for this exclusive product."}
                 </p>
-              </div>
-            </CardContent>
-            <CardFooter className="pt-0 border-t border-border/50 bg-muted/20">
-              <Button
-                className="w-full mt-4"
-                onClick={() => {
-                  setSelectedProduct(product);
-                  setIsBuyDialogOpen(true);
-                }}
-              >
-                Place Order
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Price</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    RM {product.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+              </CardContent>
+              <CardFooter className="pt-0 border-t border-border/50 bg-muted/20">
+                <Button
+                  className="w-full mt-4"
+                  variant={isInCart ? "outline" : "default"}
+                  onClick={() => toggleCartItem(product)}
+                >
+                  {isInCart ? 'Remove from Cart' : 'Add to Cart'}
+                </Button>
+              </CardFooter>
+            </Card>
+          );
+        })}
       </div>
 
       {filteredProducts?.length === 0 && (
@@ -291,13 +309,45 @@ export default function Shop() {
         </div>
       )}
 
+      {/* Floating Cart Bar */}
+      {cart.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-2xl z-40 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-background/95 backdrop-blur-md border border-emerald-500/30 shadow-2xl rounded-2xl p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 overflow-hidden">
+              <div className="bg-emerald-500/20 p-2.5 rounded-xl">
+                <ShoppingBag className="h-6 w-6 text-emerald-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-lg leading-none">RM {totalPrice.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground truncate">{cart.length} items in cart</p>
+              </div>
+              <div className="hidden md:flex gap-1.5 overflow-x-auto no-scrollbar max-w-[300px]">
+                {cart.map(item => (
+                  <div key={item.id} className="text-[10px] bg-muted px-2 py-0.5 rounded-full whitespace-nowrap border border-border/50">
+                    {item.name}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" className="hidden sm:flex text-muted-foreground" onClick={() => setCart([])}>
+                Clear
+              </Button>
+              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20 shadow-lg px-8" onClick={() => setIsBuyDialogOpen(true)}>
+                Checkout
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Buy Dialog */}
       <Dialog open={isBuyDialogOpen} onOpenChange={setIsBuyDialogOpen}>
-        <DialogContent className="sm:max-w-[450px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Order Confirmation</DialogTitle>
+            <DialogTitle>Checkout Confirmation</DialogTitle>
             <DialogDescription>
-              Confirming order for <span className="font-semibold text-foreground">{selectedProduct?.name}</span>
+              Review your selected products and complete the order.
             </DialogDescription>
           </DialogHeader>
 
@@ -309,10 +359,22 @@ export default function Shop() {
             }}
             className="space-y-6 py-4"
           >
+            <div className="space-y-3">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Selected Products</Label>
+              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
+                {cart.map(item => (
+                  <div key={item.id} className="flex justify-between items-center p-2 rounded-md bg-muted/50 border border-border/50 text-sm">
+                    <span className="font-medium truncate mr-4">{item.name}</span>
+                    <span className="shrink-0 font-mono">RM {item.price.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="p-4 rounded-lg bg-emerald-500/5 border border-emerald-500/20 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Price:</span>
-                <span className="font-bold text-foreground">RM {selectedProduct?.price.toLocaleString()}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground font-medium text-base">Order Total:</span>
+                <span className="font-bold text-xl text-foreground">RM {totalPrice.toLocaleString()}</span>
               </div>
 
               <buyForm.Field
@@ -337,7 +399,7 @@ export default function Shop() {
                   <div className="flex justify-between pt-2 border-t border-emerald-500/10">
                     <span className="text-muted-foreground">Installment Tier:</span>
                     <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                      {getCurrentTierInfo(selectedProduct?.price)}
+                      {getCurrentTierInfo(totalPrice)}
                     </span>
                   </div>
                 ) : null}
@@ -440,7 +502,7 @@ export default function Shop() {
                             selector={(state) => [state.values.installmentStartDate, state.values.paidUpToDate]}
                             children={([start, end]) => {
                               const months = calculateMonths(start, end);
-                              const rate = tierConfigs?.find(c => selectedProduct.price >= c.minPrice && selectedProduct.price <= c.maxPrice)?.installmentRate || 0;
+                              const rate = tierConfigs?.find(c => totalPrice >= c.minPrice && totalPrice <= c.maxPrice)?.installmentRate || 0;
                               const total = months * rate;
                               
                               return months > 0 ? (
@@ -457,10 +519,6 @@ export default function Shop() {
                               ) : null;
                             }}
                           />
-
-                          <div className="col-span-2 text-[10px] text-muted-foreground italic bg-muted/30 p-2 rounded border border-border">
-                            The system will generate a separate payment record for each month in the selected range to reflect the member's offline payment history.
-                          </div>
                         </div>
                       )}
                     />
@@ -472,17 +530,17 @@ export default function Shop() {
             <buyForm.Subscribe
               selector={(state) => state.values.isCash}
               children={(isCash) => isCash ? (
-                <div className="text-sm text-muted-foreground italic px-1">
-                  Full payment of RM {selectedProduct?.price.toLocaleString()} will be required. Commission will be credited to introducer immediately.
+                <div className="text-sm text-muted-foreground italic px-1 bg-muted/30 p-2 rounded-md border border-border/50">
+                  Full payment of RM {totalPrice.toLocaleString()} will be required. Commission for all {cart.length} items will be credited to introducer immediately.
                 </div>
               ) : (
                 <buyForm.Field
                   name="depositAmount"
                   validators={{
                     onChange: ({ value }) => {
-                      const min = selectedProduct?.price * 0.1;
+                      const min = totalPrice * 0.1;
                       if (parseFloat(value) < min) return `Minimum RM ${min.toLocaleString()} required`;
-                      if (parseFloat(value) > selectedProduct?.price) return "Deposit cannot exceed price";
+                      if (parseFloat(value) > totalPrice) return "Deposit cannot exceed price";
                       return undefined;
                     }
                   }}
@@ -516,7 +574,7 @@ export default function Shop() {
               <Button type="button" variant="outline" onClick={() => setIsBuyDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={buyMutation.isLoading}>
+              <Button type="submit" disabled={buyMutation.isLoading || cart.length === 0}>
                 {buyMutation.isLoading ? (
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
                 ) : (
