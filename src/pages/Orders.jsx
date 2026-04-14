@@ -51,17 +51,31 @@ export default function Orders() {
     }
   });
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'Active':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">Active</span>;
-      case 'Completed':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-500/10 text-blue-500 border border-blue-500/20">Completed</span>;
-      case 'Pending':
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/10 text-amber-500 border border-amber-500/20">Pending</span>;
-      default:
-        return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-muted text-muted-foreground border border-border">{status}</span>;
-    }
+  const getStatusBadge = (order) => {
+    const status = order.status;
+    const isOverdue = order.hasOverduePayments && status !== 'Completed';
+
+    return (
+      <div className="flex flex-col gap-1">
+        {(() => {
+          switch (status) {
+            case 'Active':
+              return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-center">Active</span>;
+            case 'Completed':
+              return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-500/10 text-blue-500 border border-blue-500/20 text-center">Completed</span>;
+            case 'Pending':
+              return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/10 text-amber-500 border border-amber-500/20 text-center">Pending</span>;
+            default:
+              return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-muted text-muted-foreground border border-border text-center">{status}</span>;
+          }
+        })()}
+        {isOverdue && (
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-500 text-white animate-pulse text-center shadow-sm shadow-rose-500/20">
+            Overdue
+          </span>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -168,7 +182,7 @@ export default function Orders() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {getStatusBadge(o.status)}
+                          {getStatusBadge(o)}
                         </TableCell>
                         <TableCell className="text-right">
                           <Link to={`/orders/${o.id}`}>

@@ -98,7 +98,8 @@ export default function OrderDetails() {
                 monthStr: `${year}-${String(month + 1).padStart(2, '0')}`,
                 amount: bill.amount,
                 isPaid: bill.isPaid,
-                paidAt: bill.paidAt
+                paidAt: bill.paidAt,
+                isOverdue: bill.isOverdue
             };
         });
   }, [order]);
@@ -172,6 +173,18 @@ export default function OrderDetails() {
             </span>
         </div>
       </div>
+
+      {order.hasOverduePayments && order.status !== 'Completed' && (
+        <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 flex items-center gap-4 text-rose-600 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="bg-rose-500 text-white p-2 rounded-lg shadow-lg shadow-rose-500/20">
+                <AlertCircle className="w-5 h-5" />
+            </div>
+            <div>
+                <p className="font-bold text-sm">Payment Overdue</p>
+                <p className="text-xs opacity-80">One or more installments are past their due date. Please settle your outstanding balance.</p>
+            </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Summary Card */}
@@ -340,6 +353,10 @@ export default function OrderDetails() {
                                             {item.isPaid ? (
                                                 <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                                                     Paid
+                                                </span>
+                                            ) : item.isOverdue ? (
+                                                <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+                                                    Overdue
                                                 </span>
                                             ) : (
                                                 <span className="text-[10px] font-bold text-amber-500 uppercase tracking-tighter">
