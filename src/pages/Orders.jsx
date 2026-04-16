@@ -4,29 +4,15 @@ import {
   ShoppingBag, 
   Search, 
   Filter, 
-  ChevronRight, 
-  Loader2, 
-  Calendar,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Package
+  AlertCircle
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
 import { fetchClient } from '@/api/fetchClient';
 import { useAuthStore } from '@/store/authStore';
 import { Link } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import OrderTable from '@/components/finance/OrderTable';
 
 export default function Orders() {
   const { user: currentUser } = useAuthStore();
@@ -50,33 +36,6 @@ export default function Orders() {
       return fetchClient(url);
     }
   });
-
-  const getStatusBadge = (order) => {
-    const status = order.status;
-    const isOverdue = order.hasOverduePayments && status !== 'Completed';
-
-    return (
-      <div className="flex flex-col gap-1">
-        {(() => {
-          switch (status) {
-            case 'Active':
-              return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-center">Active</span>;
-            case 'Completed':
-              return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-500/10 text-blue-500 border border-blue-500/20 text-center">Completed</span>;
-            case 'Pending':
-              return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/10 text-amber-500 border border-amber-500/20 text-center">Pending</span>;
-            default:
-              return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-muted text-muted-foreground border border-border text-center">{status}</span>;
-          }
-        })()}
-        {isOverdue && (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-500 text-white animate-pulse text-center shadow-sm shadow-rose-500/20">
-            Overdue
-          </span>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="h-full text-foreground p-4 md:p-8 pt-6 overflow-y-auto">
@@ -126,87 +85,7 @@ export default function Orders() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow>
-                    <TableHead className="w-[100px]">Order ID</TableHead>
-                    <TableHead>Date</TableHead>
-                    {isAdmin && <TableHead>Member</TableHead>}
-                    <TableHead>Product</TableHead>
-                    <TableHead>Balance</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={isAdmin ? 7 : 6} className="h-32 text-center">
-                        <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground mt-2">Loading orders...</p>
-                      </TableCell>
-                    </TableRow>
-                  ) : orders?.length > 0 ? (
-                    orders.map((o) => (
-                      <TableRow key={o.id} className="group hover:bg-muted/20 transition-colors">
-                        <TableCell className="font-mono text-[10px] font-bold uppercase text-muted-foreground">
-                          {o.id.substring(0,8)}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {new Date(o.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        {isAdmin && (
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium">{o.user?.name || 'Unknown'}</span>
-                              <span className="text-[10px] text-muted-foreground font-mono">{o.user?.icNumber || '-'}</span>
-                            </div>
-                          </TableCell>
-                        )}
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Package className="w-3.5 h-3.5 text-blue-500" />
-                            <span className="text-sm font-semibold truncate max-w-[150px]">
-                              {o.orderItems?.[0]?.product?.name || o.product?.name || 'Unknown'}
-                              {o.orderItems?.length > 1 && ` +${o.orderItems.length - 1} more`}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col">
-                            <span className={cn("text-sm font-bold", o.remainingBalance > 0 ? "text-rose-500" : "text-emerald-600")}>
-                              RM {o.remainingBalance.toLocaleString()}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">of RM {(o.priceAtPurchase || o.product?.price || 0).toLocaleString()}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {getStatusBadge(o)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Link to={`/orders/${o.id}`}>
-                            <Button variant="ghost" size="sm" className="h-8 group-hover:bg-emerald-500 group-hover:text-white transition-all">
-                              Details <ChevronRight className="w-4 h-4 ml-1" />
-                            </Button>
-                          </Link>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={isAdmin ? 7 : 6} className="h-40 text-center">
-                        <div className="flex flex-col items-center justify-center opacity-40">
-                          <ShoppingBag className="w-10 h-10 mb-2" />
-                          <p className="text-sm font-medium">No orders found</p>
-                          <p className="text-xs">Try adjusting your search or filters.</p>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+            <OrderTable orders={orders} isLoading={isLoading} isAdmin={isAdmin} />
           </CardContent>
         </Card>
 

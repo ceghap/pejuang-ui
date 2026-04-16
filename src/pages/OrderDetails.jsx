@@ -13,7 +13,9 @@ import {
   TrendingUp,
   History,
   Trash2,
-  Package
+  Package,
+  FileDown,
+  RotateCcw
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +32,7 @@ import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { PaymentSuccessDialog } from '@/components/finance/PaymentSuccessDialog';
 
 export default function OrderDetails() {
   const { id } = useParams();
@@ -41,6 +44,9 @@ export default function OrderDetails() {
   const [selectedMonths, setSelectedMonths] = useState([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPayDialogOpen, setIsPayDialogOpen] = useState(false);
+  const [isRevertDialogOpen, setIsRevertDialogOpen] = useState(false);
+  const [paymentToRevert, setPaymentToRevert] = useState(null);
+  const [successData, setSuccessData] = useState(null);
 
   const { data: order, isLoading, error } = useQuery({
     queryKey: ['order-details', id],
@@ -55,7 +61,43 @@ export default function OrderDetails() {
         body: JSON.stringify(payload),
       });
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      // Prepare data for Success Dialog BEFORE invalidating
+      const paidMonths = selectedMonths.map(mStr => {
+          const monthSchedule = schedule.find(s => s.monthStr === mStr);
+          const idx = schedule.findIndex(s => s.monthStr === mStr) + 1;
+          
+          // Calculate theoretical balance after this specific payment
+          // This is a bit complex since we pay multiple months at once
+          // We'll just show the final balance after the whole bulk operation
+          return {
+              label: `ANSURAN-${idx}`,
+              amount: order.monthlyInstallmentRate,
+              date: new Date().toLocaleDateString('en-GB'),
+              balance: order.remainingBalance - (selectedMonths.indexOf(mStr) + 1) * order.monthlyInstallmentRate
+          };
+      });
+
+      const depositAmount = (order.priceAtPurchase - order.totalBalance);
+      
+      // Preferred order: Pejuang313, then any other membership, then '-'
+      const mId = order.user?.memberships?.find(m => m.programType === 'Pejuang313')?.fullMemberId 
+               || order.user?.memberships?.[0]?.fullMemberId 
+               || '-';
+
+      setSuccessData({
+          phoneNumber: order.user?.phoneNumber || '',
+          memberId: mId,
+          customerName: order.user?.name || 'Unknown',
+          items: order.orderItems?.map(oi => oi.product?.name) || [order.product?.name],
+          totalPrice: order.priceAtPurchase,
+          package: order.tier,
+          depositInfo: `DEPO 10% (RM ${depositAmount.toLocaleString()}) - ${new Date(order.createdAt).toLocaleDateString('en-GB')}`,
+          installmentRate: order.monthlyInstallmentRate,
+          totalMonths: Math.round(order.totalBalance / order.monthlyInstallmentRate),
+          installmentsPaid: paidMonths
+      });
+
       queryClient.invalidateQueries(['order-details', id]);
       setSelectedMonths([]);
       setIsPayDialogOpen(false);
@@ -63,6 +105,23 @@ export default function OrderDetails() {
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to record payment');
+    }
+  });
+
+  const revertMutation = useMutation({
+    mutationFn: async (paymentId) => {
+      return fetchClient(`/finance/payments/${paymentId}`, {
+        method: 'DELETE'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['order-details', id]);
+      setIsRevertDialogOpen(false);
+      setPaymentToRevert(null);
+      toast.success('Payment reverted successfully');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to revert payment');
     }
   });
 
@@ -93,16 +152,30 @@ export default function OrderDetails() {
             const year = date.getUTCFullYear();
             const month = date.getUTCMonth();
             
+            // Find corresponding payment for this month
+            const payment = order.payments?.find(p => {
+                const pDate = new Date(p.paymentDate);
+                return pDate.getUTCFullYear() === year && pDate.getUTCMonth() === month;
+            });
+
             return {
                 label: `${monthNames[month]} ${year}`,
                 monthStr: `${year}-${String(month + 1).padStart(2, '0')}`,
                 amount: bill.amount,
                 isPaid: bill.isPaid,
                 paidAt: bill.paidAt,
-                isOverdue: bill.isOverdue
+                isOverdue: bill.isOverdue,
+                paymentId: payment?.id
             };
         });
   }, [order]);
+
+  const latestPaidMonthStr = useMemo(() => {
+    const paidMonths = schedule.filter(s => s.isPaid);
+    if (paidMonths.length === 0) return null;
+    // schedule is already sorted by date, so the last paid is the latest one
+    return paidMonths[paidMonths.length - 1].monthStr;
+  }, [schedule]);
 
   const toggleMonth = (monthStr) => {
     setSelectedMonths(prev => 
@@ -125,6 +198,31 @@ export default function OrderDetails() {
     payMutation.mutate(payload);
   };
 
+  const handleDownloadReceipt = async (paymentId) => {
+    try {
+      const token = useAuthStore.getState().token;
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'}/finance/payments/${paymentId}/receipt`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Failed to download receipt');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `receipt-${paymentId.substring(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-[400px] items-center justify-center">
@@ -145,6 +243,18 @@ export default function OrderDetails() {
 
   const isCash = order.tier === 'N/A';
 
+  const statusInfo = (() => {
+    const status = order.status;
+    if (status === 'Active' || status === 1) return { label: 'Active', className: 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' };
+    if (status === 'Completed' || status === 2) return { label: 'Completed', className: 'bg-blue-500/10 text-blue-500 border border-blue-500/20' };
+    if (status === 'Pending' || status === 0) return { label: 'Pending', className: 'bg-amber-500/10 text-amber-500 border border-amber-500/20' };
+    if (status === 'Upgraded' || status === 3) return { label: 'Upgraded', className: 'bg-purple-500/10 text-purple-500 border border-purple-500/20' };
+    if (status === 'Cancelled' || status === 4) return { label: 'Cancelled', className: 'bg-rose-500/10 text-rose-500 border border-rose-500/20' };
+    return { label: status, className: 'bg-muted text-muted-foreground border border-border' };
+  })();
+
+  const isCompleted = order.status === 'Completed' || order.status === 2;
+
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-5xl mx-auto pb-20">
       <div className="flex items-center gap-4">
@@ -153,6 +263,16 @@ export default function OrderDetails() {
         </Button>
         <h1 className="text-2xl font-bold tracking-tight">Order Details</h1>
         <div className="ml-auto flex items-center gap-2">
+            {isCash && order.payments?.length > 0 && (
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-8 border-emerald-500/30 text-emerald-600 hover:bg-emerald-50"
+                    onClick={() => handleDownloadReceipt(order.payments[0].id)}
+                >
+                    <FileDown className="w-4 h-4 mr-2" /> Receipt
+                </Button>
+            )}
             {isAdmin && (
                 <Button 
                     variant="outline" 
@@ -165,16 +285,14 @@ export default function OrderDetails() {
             )}
             <span className={cn(
                 "px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                order.status === 'Active' ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" :
-                order.status === 'Completed' ? "bg-blue-500/10 text-blue-500 border border-blue-500/20" :
-                "bg-muted text-muted-foreground border border-border"
+                statusInfo.className
             )}>
-                {order.status}
+                {statusInfo.label}
             </span>
         </div>
       </div>
 
-      {order.hasOverduePayments && order.status !== 'Completed' && (
+      {order.hasOverduePayments && !isCompleted && (
         <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-4 flex items-center gap-4 text-rose-600 animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="bg-rose-500 text-white p-2 rounded-lg shadow-lg shadow-rose-500/20">
                 <AlertCircle className="w-5 h-5" />
@@ -339,8 +457,12 @@ export default function OrderDetails() {
                                             ) : (
                                                 <input 
                                                     type="checkbox" 
-                                                    className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                                    className={cn(
+                                                        "h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500",
+                                                        canSelect ? "cursor-pointer" : "opacity-30 cursor-not-allowed"
+                                                    )}
                                                     checked={isSelected}
+                                                    disabled={!canSelect}
                                                     readOnly
                                                 />
                                             )}
@@ -351,9 +473,42 @@ export default function OrderDetails() {
                                         <TableCell className="text-sm font-mono text-muted-foreground">RM {item.amount.toLocaleString()}</TableCell>
                                         <TableCell className="text-right">
                                             {item.isPaid ? (
-                                                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                                                    Paid
-                                                </span>
+                                                <div className="flex items-center justify-end gap-3">
+                                                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                                                        Paid
+                                                    </span>
+                                                    {item.paymentId && (
+                                                        <div className="flex items-center gap-1">
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="sm" 
+                                                                className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDownloadReceipt(item.paymentId);
+                                                                }}
+                                                                title="Download Receipt"
+                                                            >
+                                                                <FileDown className="w-5 h-5" />
+                                                            </Button>
+                                                            {isAdmin && item.monthStr === latestPaidMonthStr && (
+                                                                <Button 
+                                                                    variant="ghost" 
+                                                                    size="sm" 
+                                                                    className="h-8 w-8 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setPaymentToRevert(item.paymentId);
+                                                                        setIsRevertDialogOpen(true);
+                                                                    }}
+                                                                    title="Undo Latest Payment"
+                                                                >
+                                                                    <RotateCcw className="w-4 h-4" />
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             ) : item.isOverdue ? (
                                                 <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
                                                     Overdue
@@ -385,7 +540,7 @@ export default function OrderDetails() {
                                 const isInstallment = Math.abs(p.amount - order.monthlyInstallmentRate) < 0.01;
 
                                 return (
-                                    <div key={p.id} className="p-4 flex justify-between items-center hover:bg-muted/20 transition-colors">
+                                    <div key={p.id} className="p-4 flex justify-between items-center hover:bg-muted/20 transition-colors group">
                                         <div className="space-y-0.5">
                                             <p className="text-xs font-bold text-foreground">
                                                 {isInstallment 
@@ -429,6 +584,17 @@ export default function OrderDetails() {
       />
 
       <ConfirmDialog
+        isOpen={isRevertDialogOpen}
+        onClose={() => setIsRevertDialogOpen(false)}
+        title="Undo Payment?"
+        description="Are you sure you want to revert this payment? This will add the amount back to the remaining balance and delete associated commission forecasts."
+        onConfirm={() => revertMutation.mutate(paymentToRevert)}
+        variant="destructive"
+        confirmText="Yes, Undo Payment"
+        isLoading={revertMutation.isPending}
+      />
+
+      <ConfirmDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         title="Delete Order?"
@@ -437,6 +603,12 @@ export default function OrderDetails() {
         variant="destructive"
         confirmText="Yes, Delete Order"
         isLoading={deleteMutation.isPending}
+      />
+
+      <PaymentSuccessDialog 
+        isOpen={!!successData}
+        onClose={() => setSuccessData(null)}
+        data={successData}
       />
     </div>
   );

@@ -45,3 +45,17 @@ This file provides persistent context and mandates for the Gemini CLI agent and 
 ## Testing & Validation
 - **Visual Check**: Ensure layouts are responsive using Tailwind's `md:` and `lg:` prefixes.
 - **Form Validation**: Test both success and error paths (e.g., API failure messages from the backend).
+
+# Role: High-Speed CLI Assistant
+# Mode: Direct Execution (No Planning)
+
+## Rules for Speed:
+1. NEVER enter a thinking loop for more than 10 seconds.
+2. If the task is complex, provide a partial solution immediately rather than planning indefinitely.
+3. DO NOT index large directories. Only look at files I explicitly @reference.
+4. Use concise, "code-first" responses. Skip introductions and "Here is the code..." filler.
+5. If you reach a context limit, notify me and suggest a `/compress` or `/clear` command immediately.
+6. Use the Flash model logic for speed unless I specifically request deep reasoning.
+
+## Conflict Resolution:
+If you get stuck or find a conflict in the context, stop thinking and ASK for clarification. Do not attempt to resolve it by recursive logic.

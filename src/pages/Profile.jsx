@@ -1,20 +1,42 @@
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useQuery } from '@tanstack/react-query';
-import { User, Shield, IdCard, Calendar, Loader2, ShoppingBag, ChevronRight } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { User, Shield, IdCard, Calendar, Loader2, ShoppingBag, Search, Filter } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { fetchClient } from '@/api/fetchClient';
-import { Link } from 'react-router-dom';
+import OrderTable from '@/components/finance/OrderTable';
 
 export default function Profile() {
   const { user: authUser } = useAuthStore();
+  
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
-  const { data: user, isLoading } = useQuery({
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const { data: user, isLoading: isLoadingUser } = useQuery({
     queryKey: ['user-profile', authUser?.id],
     queryFn: () => fetchClient(`/users/${authUser?.id}`),
     enabled: !!authUser?.id
   });
 
-  if (isLoading) {
+  const { data: orders, isLoading: isLoadingOrders } = useQuery({
+    queryKey: ['user-orders', authUser?.id, debouncedSearch, statusFilter],
+    queryFn: () => {
+      let url = `/finance/orders?userId=${authUser?.id}&`;
+      if (debouncedSearch) url += `search=${encodeURIComponent(debouncedSearch)}&`;
+      if (statusFilter !== 'all') url += `status=${statusFilter}&`;
+      return fetchClient(url);
+    },
+    enabled: !!authUser?.id
+  });
+
+  if (isLoadingUser) {
     return (
       <div className="h-full flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -24,37 +46,39 @@ export default function Profile() {
 
   return (
     <div className="h-full text-foreground p-4 md:p-8 pt-6 overflow-y-auto">
-      <div className="max-w-4xl mx-auto space-y-6 md:space-y-8 pb-10">
+      <div className="max-w-6xl mx-auto space-y-12 pb-20">
         
+        {/* Header Section */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl md:text-3xl font-light tracking-tight">Your <span className="font-semibold">Profile</span></h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="bg-card border-border lg:col-span-2">
+        {/* Profile Details Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <Card className="bg-card border-border lg:col-span-2 shadow-sm">
             <CardHeader>
               <CardTitle className="text-xl font-medium flex items-center gap-2">
                 <User className="text-blue-500 w-5 h-5" /> Account Details
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                  <p className="text-muted-foreground text-xs uppercase tracking-wider font-semibold mb-1">Full Name</p>
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Full Name</p>
                   <p className="text-lg font-medium">{user?.name || 'Unknown'}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-xs uppercase tracking-wider font-semibold mb-1">IC Number</p>
-                  <p className="text-lg font-medium font-mono">{user?.icNumber || '-'}</p>
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">IC Number</p>
+                  <p className="text-lg font-medium font-mono tracking-tighter">{user?.icNumber || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-xs uppercase tracking-wider font-semibold mb-1">Phone Number</p>
-                  <p className="text-lg font-medium font-mono">{user?.phoneNumber || '-'}</p>
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Phone Number</p>
+                  <p className="text-lg font-medium font-mono tracking-tighter">{user?.phoneNumber || '-'}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-xs uppercase tracking-wider font-semibold mb-1">Role Status</p>
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Role Status</p>
                   <div className="pt-1">
-                    <span className="inline-flex items-center rounded-md bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-500 ring-1 ring-inset ring-blue-500/30">
+                    <span className="inline-flex items-center rounded-md bg-blue-500/10 px-2.5 py-1 text-xs font-bold text-blue-500 ring-1 ring-inset ring-blue-500/30 uppercase tracking-tighter">
                       {user?.role || 'Member'}
                     </span>
                   </div>
@@ -62,15 +86,15 @@ export default function Profile() {
               </div>
 
               {user?.upline && (
-                <div className="pt-4 border-t border-border">
-                  <p className="text-muted-foreground text-xs uppercase tracking-wider font-semibold mb-2">Introducer (Upline)</p>
-                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border w-fit min-w-[200px]">
-                    <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                <div className="pt-6 border-t border-border/50">
+                  <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-3 opacity-70">Introducer (Upline)</p>
+                  <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-xl border border-border/50 w-fit min-w-[240px] hover:bg-muted/50 transition-colors">
+                    <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center ring-4 ring-blue-500/5">
                       <User className="w-5 h-5 text-blue-500" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold">{user.upline.name}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-tight">Direct Upline</p>
+                      <p className="text-sm font-bold">{user.upline.name}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black opacity-50">Direct Upline</p>
                     </div>
                   </div>
                 </div>
@@ -78,58 +102,58 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          <div className="space-y-6">
-            <Card className="bg-card border-border">
+          <div className="space-y-8">
+            <Card className="bg-card border-border shadow-sm">
               <CardHeader>
-                <CardTitle className="text-xl font-medium flex items-center gap-2">
-                  <Shield className="text-emerald-500 w-5 h-5" /> Access
+                <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                  <Shield className="text-emerald-500 w-4 h-4" /> Access Level
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {(user?.role === 'Admin' || user?.role === 'SuperAdmin') ? (
-                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-                    <p className="text-sm text-emerald-700 font-medium mb-1">Administrator Mode</p>
-                    <p className="text-xs text-muted-foreground">You have high-level administrative access to manage users, hierarchy, and system configurations.</p>
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                    <p className="text-xs text-emerald-700 font-bold uppercase tracking-tight mb-1">Administrator Mode</p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">System-wide management and oversight access granted.</p>
                   </div>
                 ) : (
-                  <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-lg">
-                    <p className="text-sm text-blue-700 font-medium mb-1">Member Account</p>
-                    <p className="text-xs text-muted-foreground">Standard access to personal dashboard and order history.</p>
+                  <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-xl">
+                    <p className="text-xs text-blue-700 font-bold uppercase tracking-tight mb-1">Member Account</p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">Personal dashboard and purchase history tracking.</p>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="bg-card border-border overflow-hidden">
+            <Card className="bg-card border-border overflow-hidden shadow-sm">
               <CardHeader className="bg-muted/30 border-b border-border py-4">
-                <CardTitle className="text-lg font-medium flex items-center gap-2">
-                  <IdCard className="text-rose-500 w-5 h-5" /> Memberships
+                <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                  <IdCard className="text-rose-500 w-4 h-4" /> Your Memberships
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {user?.memberships?.length > 0 ? (
                   <div className="divide-y divide-border">
                     {user.memberships.map((m) => (
-                      <div key={m.id} className="p-4 hover:bg-muted/10 transition-colors">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-rose-500 uppercase tracking-widest">{m.programType}</span>
-                          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      <div key={m.id} className="p-5 hover:bg-muted/20 transition-colors group">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/10">{m.programType}</span>
+                          <span className="text-[10px] text-muted-foreground flex items-center gap-1 font-bold">
                             <Calendar className="w-3 h-3" /> {new Date(m.assignedAt).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-2xl font-black tracking-tighter text-foreground font-mono">
+                          <span className="text-3xl font-black tracking-tighter text-foreground font-mono group-hover:text-rose-500 transition-colors">
                             {m.fullMemberId}
                           </span>
-                          <span className="text-[10px] text-muted-foreground uppercase font-semibold">Active Member ID</span>
+                          <span className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-40">Sequential ID</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="p-8 text-center">
-                    <IdCard className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground italic">No active memberships found.</p>
+                  <div className="p-10 text-center">
+                    <IdCard className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
+                    <p className="text-xs text-muted-foreground italic font-medium">No active memberships.</p>
                   </div>
                 )}
               </CardContent>
@@ -137,69 +161,48 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Order History */}
-        <Card className="bg-card border-border overflow-hidden">
-          <CardHeader className="bg-muted/30 border-b border-border py-4">
-            <CardTitle className="text-lg font-medium flex items-center gap-2">
-              <ShoppingBag className="text-emerald-500 w-5 h-5" /> Your Orders
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <OrderList userId={authUser?.id} />
-          </CardContent>
-        </Card>
-
-      </div>
-    </div>
-  );
-}
-
-function OrderList({ userId }) {
-  const { data: orders, isLoading } = useQuery({
-    queryKey: ['user-orders', userId],
-    queryFn: () => fetchClient(`/finance/orders?userId=${userId}`),
-    enabled: !!userId
-  });
-
-  if (isLoading) {
-    return <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" /></div>;
-  }
-
-  if (!orders || orders.length === 0) {
-    return (
-      <div className="p-8 text-center text-muted-foreground italic text-sm">
-        No orders found. Visit the shop to start your journey.
-      </div>
-    );
-  }
-
-  return (
-    <div className="divide-y divide-border">
-      {orders.map((o) => (
-        <Link 
-          key={o.id} 
-          to={`/orders/${o.id}`}
-          className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors group"
-        >
-          <div className="space-y-1">
-            <p className="text-sm font-bold text-foreground group-hover:text-emerald-600 transition-colors">
-              {o.product?.name}
-            </p>
-            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-              <span className="font-mono uppercase">{o.id.substring(0,8)}</span>
-              <span>•</span>
-              <span>{new Date(o.createdAt).toLocaleDateString()}</span>
+        {/* Separated Order History Section - Just like Orders Page */}
+        <div className="space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-light tracking-tight">Your <span className="font-semibold">Order History</span></h2>
+              <p className="text-muted-foreground text-xs mt-1">Track and manage your installment payments and digital receipts.</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-xs font-bold text-foreground">RM {o.remainingBalance.toLocaleString()}</p>
-              <p className="text-[10px] text-muted-foreground uppercase">Balance</p>
-            </div>
-            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-all group-hover:translate-x-0.5" />
-          </div>
-        </Link>
-      ))}
+
+          <Card className="bg-card border-border shadow-sm overflow-hidden">
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/50 pb-6">
+              <div className="flex flex-1 items-center gap-2 w-full sm:max-w-sm">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by Product Name..."
+                    className="pl-9 bg-muted/20 border-border h-9 text-sm"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-muted-foreground mr-1" />
+                <select 
+                  className="bg-muted/20 border border-border rounded-md text-[11px] font-bold uppercase h-9 px-3 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="all">All Status</option>
+                  <option value="Active">Active</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <OrderTable orders={orders} isLoading={isLoadingOrders} isAdmin={false} />
+            </CardContent>
+          </Card>
+        </div>
+
+      </div>
     </div>
   );
 }
