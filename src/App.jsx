@@ -9,9 +9,11 @@ import MembershipPrograms from './pages/MembershipPrograms';
 import MembershipProgramDetails from './pages/MembershipProgramDetails';
 import Products from './pages/Products';
 import Categories from './pages/Categories';
+import Commissions from './pages/Commissions';
 import TierConfigs from './pages/TierConfigs';
 import Shop from './pages/Shop';
 import Profile from './pages/Profile';
+import MyCommissions from './pages/MyCommissions';
 import Orders from './pages/Orders';
 import OrderDetails from './pages/OrderDetails';
 import ErrorPage from './pages/ErrorPage';
@@ -90,6 +92,7 @@ const router = createBrowserRouter([
           { path: '/profile', element: <Profile /> },
           { path: '/shop', element: <Shop /> },
           { path: '/orders', element: <Orders /> },
+          { path: '/commissions', element: <MyCommissions /> },
           { path: '/orders/:id', element: <OrderDetails /> }
         ]
       }
@@ -104,6 +107,7 @@ const router = createBrowserRouter([
         children: [
           { path: '/admin/users', element: <AdminDashboard /> },
           { path: '/admin/hierarchy', element: <Hierarchy /> },
+          { path: '/admin/commissions', element: <Commissions /> },
           { path: '/admin/memberships', element: <MembershipPrograms /> },
           { path: '/admin/memberships/:prefix', element: <MembershipProgramDetails /> },
           { path: '/admin/products', element: <Products /> },

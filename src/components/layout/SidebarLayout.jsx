@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { Network, LayoutDashboard, User, LogOut, ShoppingBag, Receipt, IdCard, Menu, X, Layers } from 'lucide-react';
+import { Network, LayoutDashboard, User, LogOut, ShoppingBag, Receipt, IdCard, Menu, X, Layers, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -17,11 +17,13 @@ export default function SidebarLayout() {
     { label: 'Profile', path: '/profile', icon: User },
     { label: 'Shop', path: '/shop', icon: ShoppingBag },
     { label: 'My Bills & History', path: '/orders', icon: Receipt },
+    { label: 'My Commissions', path: '/commissions', icon: DollarSign },
   ];
 
   const adminLinks = [
     { label: 'User Management', path: '/admin/users', icon: LayoutDashboard },
     { label: 'Billing & Orders', path: '/orders', icon: Receipt },
+    { label: 'Introducer Payouts', path: '/admin/commissions', icon: Layers },
     { label: 'Network Hierarchy', path: '/admin/hierarchy', icon: Network },
     { label: 'Membership Programs', path: '/admin/memberships', icon: IdCard },
     { label: 'Product Catalog', path: '/admin/products', icon: ShoppingBag },
@@ -60,10 +62,10 @@ export default function SidebarLayout() {
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden">
-      
+
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
@@ -74,13 +76,13 @@ export default function SidebarLayout() {
         "fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-card flex flex-col shrink-0 transition-transform duration-300 lg:static lg:translate-x-0",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        
+
         {/* Brand Header */}
-        <div className="h-16 flex items-center justify-center px-6 border-b border-border shrink-0 relative">
+        <div className="h-16 flex items-center justify-between px-6 border-b border-border shrink-0">
           <img src="/logopejuang.svg" alt="Pejuang Logo" className="h-11 w-auto" />
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className="lg:hidden p-0 h-8 w-8 absolute right-4"
             onClick={() => setIsSidebarOpen(false)}
           >
@@ -90,7 +92,7 @@ export default function SidebarLayout() {
 
         {/* Navigation Links */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 flex flex-col gap-6">
-          
+
           <div>
             <div className="text-xs font-semibold text-zinc-600 tracking-wider uppercase mb-3 px-2">Account</div>
             {renderLinks(userLinks)}
@@ -114,7 +116,7 @@ export default function SidebarLayout() {
               <p className="text-xs text-muted-foreground">{user?.role}</p>
             </div>
           </div>
-          
+
           <Button variant="ghost" onClick={logout} className="w-full justify-start text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10">
             <LogOut className="w-5 h-5 mr-3" />
             Sign Out
@@ -124,12 +126,12 @@ export default function SidebarLayout() {
 
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 min-w-0">
-        
+
         {/* Mobile Navbar */}
         <header className="h-16 flex items-center px-4 border-b border-border bg-card lg:hidden shrink-0">
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             className="mr-3"
             onClick={() => setIsSidebarOpen(true)}
           >

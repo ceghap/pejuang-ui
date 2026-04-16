@@ -90,7 +90,7 @@ export default function OrderTable({ orders, isLoading, isAdmin }) {
                   {o.id.substring(0, 8)}
                 </TableCell>
                 <TableCell className="text-xs">
-                  {new Date(o.createdAt).toLocaleDateString()}
+                  {new Date(o.createdAt).toLocaleDateString('en-GB')}
                 </TableCell>
                 {isAdmin && (
                   <TableCell>

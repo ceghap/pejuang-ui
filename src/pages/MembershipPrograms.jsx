@@ -204,7 +204,7 @@ export default function MembershipPrograms() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">{p.description || '-'}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {new Date(p.createdAt).toLocaleDateString()}
+                          {new Date(p.createdAt).toLocaleDateString('en-GB')}
                         </TableCell>
                       </TableRow>
                     ))

@@ -138,7 +138,7 @@ export default function Profile() {
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/10">{m.programType}</span>
                           <span className="text-[10px] text-muted-foreground flex items-center gap-1 font-bold">
-                            <Calendar className="w-3 h-3" /> {new Date(m.assignedAt).toLocaleDateString()}
+                            <Calendar className="w-3 h-3" /> {new Date(m.assignedAt).toLocaleDateString('en-GB')}
                           </span>
                         </div>
                         <div className="flex flex-col">

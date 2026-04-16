@@ -39,7 +39,7 @@ function UserLookup({ value, onChange }) {
 
   const handleSelect = (user) => {
     setSelectedUser(user);
-    onChange(user.id);
+    onChange(user); // Pass full user object
     setIsOpen(false);
     setSearchTerm('');
   };
@@ -99,6 +99,8 @@ export default function Shop() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [cart, setCart] = useState([]);
   const [isBuyDialogOpen, setIsBuyDialogOpen] = useState(false);
+  const [isMissingIntroducerDialogOpen, setIsMissingIntroducerDialogOpen] = useState(false);
+  const [selectedIntroducerId, setSelectedIntroducerId] = useState(null);
 
   const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'SuperAdmin';
 
@@ -138,6 +140,7 @@ export default function Shop() {
     onSuccess: (data) => {
       queryClient.invalidateQueries(['orders']);
       setIsBuyDialogOpen(false);
+      setIsMissingIntroducerDialogOpen(false);
       setCart([]);
       toast.success('Order placed successfully!');
       // Redirect to the order details page
@@ -147,6 +150,35 @@ export default function Shop() {
       toast.error(error.message || 'Failed to place order');
     }
   });
+
+  const assignUplineMutation = useMutation({
+    mutationFn: ({ userId, uplineId }) => fetchClient(`/users/${userId}/assign-upline`, {
+      method: 'POST',
+      body: JSON.stringify({ uplineId }),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['user-lookup']);
+      // After successfully assigning, proceed with the order
+      const formValues = buyForm.state.values;
+      submitOrder(formValues);
+    },
+    onError: (error) => {
+      toast.error(`Failed to assign introducer: ${error.message}`);
+    }
+  });
+
+  const submitOrder = (value) => {
+    buyMutation.mutate({
+      productIds: cart.map(p => p.id),
+      depositAmount: parseFloat(value.depositAmount),
+      isCash: value.isCash,
+      isDepositPaid: value.isDepositPaid,
+      userId: value.user?.id || undefined,
+      createdAt: value.isHistorical ? value.createdAt : undefined,
+      installmentStartDate: (value.isHistorical && value.installmentStartDate) ? `${value.installmentStartDate}-01` : undefined,
+      paidUpToDate: (value.isHistorical && value.paidUpToDate) ? `${value.paidUpToDate}-01` : undefined
+    });
+  };
 
   const calculateMonths = (start, end) => {
     if (!start || !end) return 0;
@@ -160,22 +192,21 @@ export default function Shop() {
     defaultValues: {
       depositAmount: '',
       isCash: false,
-      userId: null,
+      user: null, // Full user object
       isHistorical: false,
+      isDepositPaid: true,
       createdAt: new Date().toISOString().split('T')[0],
       installmentStartDate: '',
       paidUpToDate: '',
     },
     onSubmit: async ({ value }) => {
-      buyMutation.mutate({
-        productIds: cart.map(p => p.id),
-        depositAmount: parseFloat(value.depositAmount),
-        isCash: value.isCash,
-        userId: value.userId || undefined,
-        createdAt: value.isHistorical ? value.createdAt : undefined,
-        installmentStartDate: (value.isHistorical && value.installmentStartDate) ? `${value.installmentStartDate}-01` : undefined,
-        paidUpToDate: (value.isHistorical && value.paidUpToDate) ? `${value.paidUpToDate}-01` : undefined
-      });
+      // Intercept if Admin is buying for someone without an introducer
+      if (isAdmin && value.user && !value.user.uplineId) {
+        setIsMissingIntroducerDialogOpen(true);
+        return;
+      }
+
+      submitOrder(value);
     },
   });
 
@@ -396,11 +427,29 @@ export default function Shop() {
               <buyForm.Subscribe
                 selector={(state) => state.values.isCash}
                 children={(isCash) => !isCash ? (
-                  <div className="flex justify-between pt-2 border-t border-emerald-500/10">
-                    <span className="text-muted-foreground">Installment Tier:</span>
-                    <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                      {getCurrentTierInfo(totalPrice)}
-                    </span>
+                  <div className="space-y-4 pt-2 border-t border-emerald-500/10">
+                    <buyForm.Field
+                      name="isDepositPaid"
+                      children={(field) => (
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="isDepositPaid" className="cursor-pointer font-medium text-emerald-700">Initial Deposit Paid Now</Label>
+                          <input
+                            id="isDepositPaid"
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                            checked={field.state.value}
+                            onChange={(e) => field.handleChange(e.target.checked)}
+                          />
+                        </div>
+                      )}
+                    />
+
+                    <div className="flex justify-between pt-2 border-t border-emerald-500/10">
+                      <span className="text-muted-foreground">Installment Tier:</span>
+                      <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                        {getCurrentTierInfo(totalPrice)}
+                      </span>
+                    </div>
                   </div>
                 ) : null}
               />
@@ -408,7 +457,7 @@ export default function Shop() {
 
             {isAdmin && (
               <buyForm.Field
-                name="userId"
+                name="user"
                 children={(field) => (
                   <UserLookup
                     value={field.state.value}
@@ -497,14 +546,14 @@ export default function Shop() {
                               </div>
                             )}
                           />
-                          
+
                           <buyForm.Subscribe
                             selector={(state) => [state.values.installmentStartDate, state.values.paidUpToDate]}
                             children={([start, end]) => {
                               const months = calculateMonths(start, end);
                               const rate = tierConfigs?.find(c => totalPrice >= c.minPrice && totalPrice <= c.maxPrice)?.installmentRate || 0;
                               const total = months * rate;
-                              
+
                               return months > 0 ? (
                                 <div className="col-span-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs space-y-1">
                                   <div className="flex justify-between font-medium text-amber-700 dark:text-amber-400">
@@ -583,6 +632,59 @@ export default function Shop() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Missing Introducer Dialog */}
+      <Dialog open={isMissingIntroducerDialogOpen} onOpenChange={setIsMissingIntroducerDialogOpen}>
+        <DialogContent className="sm:max-w-[435px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-amber-500" /> No Introducer Detected
+            </DialogTitle>
+            <DialogDescription>
+              The selected user has no introducer yet. Do you want to add one? An introducer can earn commissions for this order.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            <UserLookup
+              value={selectedIntroducerId}
+              onChange={(user) => setSelectedIntroducerId(user?.id)}
+            />
+          </div>
+
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-between">
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                // Proceed without introducer
+                submitOrder(buyForm.state.values);
+              }}
+              disabled={assignUplineMutation.isLoading || buyMutation.isLoading}
+            >
+              Proceed Without Introducer
+            </Button>
+            <Button
+              type="button"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={!selectedIntroducerId || assignUplineMutation.isLoading || buyMutation.isLoading}
+              onClick={() => {
+                assignUplineMutation.mutate({
+                  userId: buyForm.state.values.user.id,
+                  uplineId: selectedIntroducerId
+                });
+              }}
+            >
+              {assignUplineMutation.isLoading ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Assigning...</>
+              ) : (
+                'Confirm With Introducer'
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

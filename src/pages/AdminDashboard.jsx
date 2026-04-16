@@ -962,7 +962,8 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
                       </div>
                       <div className="text-right">
                         <p className="text-[10px] text-muted-foreground">Assigned on</p>
-                        <p className="text-xs font-medium">{new Date(m.assignedAt).toLocaleDateString()}</p>
+                        <p className="text-xs font-medium">{new Date(m.assignedAt).toLocaleDateString('en-GB')}</p>
+
                       </div>
                     </div>
                   ))}
