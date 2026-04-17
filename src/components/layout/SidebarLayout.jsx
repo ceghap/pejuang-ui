@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { Network, LayoutDashboard, TrendingUp, User, LogOut, ShoppingBag, Receipt, IdCard, Menu, X, Layers, DollarSign, Calendar } from 'lucide-react';
+import { Network, LayoutDashboard, TrendingUp, Building2, User, LogOut, ShoppingBag, Receipt, IdCard, Menu, X, Layers, DollarSign, Calendar } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +24,7 @@ export default function SidebarLayout() {
   const adminLinks = [
     { label: 'User Management', path: '/admin/users', icon: LayoutDashboard },
     { label: 'Calendar (Takwim)', path: '/admin/calendar', icon: Calendar },
+    { label: 'Cawangan Management', path: '/admin/cawangan', icon: Building2 },
     { label: 'Financial Hub', path: '/admin/finance', icon: TrendingUp },
     { label: 'Billing & Orders', path: '/orders', icon: Receipt },
     { label: 'Introducer Payouts', path: '/admin/commissions', icon: Layers },

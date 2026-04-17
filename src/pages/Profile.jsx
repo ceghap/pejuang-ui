@@ -85,6 +85,15 @@ export default function Profile() {
                     <p className="text-lg font-medium font-mono tracking-tighter">{user?.phoneNumber || '-'}</p>
                   </div>
                   <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Cawangan (Branch)</p>
+                    <p className={cn(
+                        "text-lg font-medium",
+                        !user?.cawanganName && "italic text-muted-foreground/60"
+                    )}>
+                        {user?.cawanganName || 'Unassigned'}
+                    </p>
+                  </div>
+                  <div>
                     <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Role Status</p>
                     <div className="pt-1">
                       <span className="inline-flex items-center rounded-md bg-blue-500/10 px-2.5 py-1 text-xs font-bold text-blue-500 ring-1 ring-inset ring-blue-500/30 uppercase tracking-tighter">

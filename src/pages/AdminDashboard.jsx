@@ -1,18 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from '@tanstack/react-form';
-import { UploadCloud, Users, Download, Search, ChevronLeft, ChevronRight, Loader2, AlertCircle, CheckCircle2, Pencil, Trash2, X, MoreHorizontal } from 'lucide-react';
+import { UploadCloud, Users, Plus, Download, Search, ChevronLeft, Building2, ChevronRight, Loader2, AlertCircle, CheckCircle2, Pencil, Trash2, X, MoreHorizontal } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import {
   Dialog,
@@ -32,10 +32,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { fetchClient, downloadFile } from '@/api/fetchClient';
+import { cn } from '@/lib/utils';
 
 import { toast } from 'sonner';
 
-function UserLookup({ label, value, onChange, initialData = null, placeholder = "Search by Name, IC or Phone..." }) {
+export function UserLookup({ label, value, onChange, initialData = null, placeholder = "Search by Name, IC or Phone..." }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -86,7 +87,7 @@ function UserLookup({ label, value, onChange, initialData = null, placeholder = 
   return (
     <div className="space-y-2 relative">
       <Label>{label}</Label>
-      
+
       {selectedUser ? (
         <div className="flex items-center justify-between p-2 border border-border bg-muted/30 rounded-md">
           <div className="text-sm">
@@ -112,7 +113,7 @@ function UserLookup({ label, value, onChange, initialData = null, placeholder = 
             }}
             onFocus={() => setIsOpen(true)}
           />
-          
+
           {isOpen && (debouncedSearch.length >= 3 || isLoading) && (
             <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-60 overflow-auto">
               {isLoading ? (
@@ -151,10 +152,15 @@ export default function AdminDashboard() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  
+  const [cawanganFilter, setCawanganFilter] = useState('all');
+  const [mandiAdatFilter, setMandiAdatFilter] = useState('all');
+
   const [editingUser, setEditingUser] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState(null);
+  const [selectedImportFile, setSelectedImportFile] = useState(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -162,11 +168,22 @@ export default function AdminDashboard() {
       setPage(1); // Reset page on search
     }, 500);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, cawanganFilter, mandiAdatFilter]);
 
   const { data: usersData, isLoading: isLoadingUsers } = useQuery({
-    queryKey: ['users', page, debouncedSearch],
-    queryFn: () => fetchClient(`/users?page=${page}&limit=10${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}`)
+    queryKey: ['users', page, debouncedSearch, cawanganFilter, mandiAdatFilter],
+    queryFn: () => {
+      let url = `/users?page=${page}&limit=10`;
+      if (debouncedSearch) url += `&search=${encodeURIComponent(debouncedSearch)}`;
+      if (cawanganFilter !== 'all') url += `&cawanganId=${cawanganFilter}`;
+      if (mandiAdatFilter !== 'all') url += `&isMandiAdat=${mandiAdatFilter === 'yes'}`;
+      return fetchClient(url);
+    }
+  });
+
+  const { data: cawangans } = useQuery({
+    queryKey: ['cawangans'],
+    queryFn: () => fetchClient('/cawangan'),
   });
 
   const createUserMutation = useMutation({
@@ -179,6 +196,7 @@ export default function AdminDashboard() {
         description: `Temp Password: ${data.temporaryPassword}`,
         duration: 10000,
       });
+      setIsCreateUserModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['users'] });
       form.reset();
     },
@@ -233,6 +251,8 @@ export default function AdminDashboard() {
       email: '',
       role: 3,
       uplineId: null,
+      cawanganId: null,
+      isMandiAdat: false
     },
     onSubmit: async ({ value }) => {
       createUserMutation.mutate(value);
@@ -252,6 +272,8 @@ export default function AdminDashboard() {
       } else {
         toast.success(`Successfully imported ${data.imported} users.`);
       }
+      setIsImportModalOpen(false);
+      setSelectedImportFile(null);
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
     onError: (error) => {
@@ -264,13 +286,23 @@ export default function AdminDashboard() {
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = (event) => {
-      const base64 = event.target.result;
-      importMutation.mutate(base64);
+      setSelectedImportFile({
+        name: file.name,
+        size: file.size,
+        base64: event.target.result
+      });
     };
     reader.readAsDataURL(file);
     e.target.value = '';
+  };
+
+  const handleStartImport = () => {
+    if (selectedImportFile?.base64) {
+      importMutation.mutate(selectedImportFile.base64);
+    }
   };
 
   const handleDownloadTemplate = async () => {
@@ -284,184 +316,27 @@ export default function AdminDashboard() {
   return (
     <div className="h-full text-foreground p-4 md:p-8 pt-6 overflow-y-auto">
       <div className="max-w-6xl mx-auto space-y-6 md:space-y-8 pb-10">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h1 className="text-2xl md:text-3xl font-light tracking-tight">Admin <span className="font-semibold">Dashboard</span></h1>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-xl flex items-center gap-2">
-                <Users className="text-blue-500 w-5 h-5" /> Manual User Creation
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">Add a single new prospect or administrator.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form 
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  form.handleSubmit();
-                }} 
-                className="space-y-4"
-              >
-                <div className="grid grid-cols-2 gap-4">
-                  <form.Field
-                    name="name"
-                    children={(field) => (
-                      <div className="space-y-2">
-                        <Label htmlFor={field.name}>Full Name *</Label>
-                        <Input 
-                          id={field.name}
-                          name={field.name}
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          required 
-                          className="bg-background border-border" 
-                        />
-                      </div>
-                    )}
-                  />
-                  <form.Field
-                    name="icNumber"
-                    children={(field) => (
-                      <div className="space-y-2">
-                        <Label htmlFor={field.name}>IC Number *</Label>
-                        <Input 
-                          id={field.name}
-                          name={field.name}
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          required 
-                          className="bg-background border-border" 
-                        />
-                      </div>
-                    )}
-                  />
-                  <form.Field
-                    name="phoneNumber"
-                    children={(field) => (
-                      <div className="space-y-2">
-                        <Label htmlFor={field.name}>Phone Number *</Label>
-                        <Input 
-                          id={field.name}
-                          name={field.name}
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          required 
-                          className="bg-background border-border" 
-                        />
-                      </div>
-                    )}
-                  />
-                  <form.Field
-                    name="email"
-                    children={(field) => (
-                      <div className="space-y-2">
-                        <Label htmlFor={field.name}>Email</Label>
-                        <Input 
-                          id={field.name}
-                          name={field.name}
-                          type="email"
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          className="bg-background border-border" 
-                        />
-                      </div>
-                    )}
-                  />
-                  <form.Field
-                    name="uplineId"
-                    children={(field) => (
-                      <div className="col-span-2">
-                        <UserLookup 
-                          label="Introducer (Upline)" 
-                          value={field.state.value} 
-                          onChange={(val) => field.handleChange(val)} 
-                        />
-                      </div>
-                    )}
-                  />
-                  <form.Field
-                    name="role"
-                    children={(field) => (
-                      <div className="space-y-2 col-span-2">
-                        <Label htmlFor={field.name}>Role</Label>
-                        <select
-                          id={field.name}
-                          name={field.name}
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(parseInt(e.target.value, 10))}
-                          className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
-                        >
-                          <option value={3}>User</option>
-                          <option value={2}>Admin</option>
-                          <option value={1}>SuperAdmin</option>
-                        </select>
-                      </div>
-                    )}
-                  />
-                </div>
-
-                <form.Subscribe
-                  selector={(state) => [state.canSubmit, state.isSubmitting]}
-                  children={([canSubmit, isSubmitting]) => (
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white" 
-                      disabled={!canSubmit || isSubmitting || createUserMutation.isPending}
-                    >
-                      {(isSubmitting || createUserMutation.isPending) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                      Create User
-                    </Button>
-                  )}
-                />
-              </form>
-            </CardContent>
-          </Card>
-
-          <div className="space-y-6">
-            <Card className="bg-card border-border h-full">
-              <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <UploadCloud className="text-emerald-500 w-5 h-5" /> Bulk Excel Import
-                </CardTitle>
-                <CardDescription className="text-muted-foreground">Upload an .xlsx file to provision multiple hierarchies.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <input
-                  type="file"
-                  accept=".xlsx"
-                  className="hidden"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                />
-                
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="h-32 border border-dashed border-emerald-500/30 bg-emerald-500/5 rounded-lg flex flex-col items-center justify-center text-muted-foreground hover:bg-emerald-500/10 transition-colors cursor-pointer"
-                >
-                  {importMutation.isPending ? (
-                    <Loader2 className="w-8 h-8 mb-2 text-emerald-500/50 animate-spin" />
-                  ) : (
-                    <UploadCloud className="w-8 h-8 mb-2 text-emerald-500/50" />
-                  )}
-                  <p className="text-sm">{importMutation.isPending ? 'Importing...' : 'Click or drag Excel file here'}</p>
-                </div>
-
-                <Button onClick={handleDownloadTemplate} variant="outline" className="w-full border-border hover:bg-accent hover:text-accent-foreground">
-                  <Download className="w-4 h-4 mr-2" /> Download Template
-                </Button>
-              </CardContent>
-            </Card>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button
+              onClick={() => setIsCreateUserModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-none"
+            >
+              <Plus className="w-4 h-4 mr-2" /> Add User
+            </Button>
+            <Button
+              onClick={() => setIsImportModalOpen(true)}
+              variant="outline"
+              className="border-emerald-500/50 text-emerald-600 hover:bg-emerald-50 flex-1 sm:flex-none"
+            >
+              <UploadCloud className="w-4 h-4 mr-2" /> Bulk Import
+            </Button>
           </div>
         </div>
 
+        <div className="grid grid-cols-1 gap-6">
+        </div>
         {/* User Table Section */}
         <Card className="bg-card border-border">
           <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -469,15 +344,38 @@ export default function AdminDashboard() {
               <CardTitle className="text-xl">User Directory</CardTitle>
               <CardDescription className="text-muted-foreground">Manage all registered prospects and admins.</CardDescription>
             </div>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search users..."
-                className="pl-9 bg-background border-border w-full"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+              <select
+                className="bg-background border border-border rounded-md text-[10px] font-bold uppercase h-10 px-2 outline-none w-full sm:w-auto"
+                value={cawanganFilter}
+                onChange={(e) => setCawanganFilter(e.target.value)}
+              >
+                <option value="all">All Branches</option>
+                <option value="unassigned">Unassigned</option>
+                {cawangans?.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <select
+                className="bg-background border border-border rounded-md text-[10px] font-bold uppercase h-10 px-2 outline-none w-full sm:w-auto"
+                value={mandiAdatFilter}
+                onChange={(e) => setMandiAdatFilter(e.target.value)}
+              >
+                <option value="all">Mandi Adat: All</option>
+                <option value="yes">Mandi Adat: Yes</option>
+                <option value="no">Mandi Adat: No</option>
+              </select>
+
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search users..."
+                  className="pl-9 bg-background border-border w-full h-10"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -486,9 +384,9 @@ export default function AdminDashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>IC Number</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Email</TableHead>
+                    <TableHead>Contact / ID</TableHead>
+                    <TableHead>Cawangan</TableHead>
+                    <TableHead>Mandi Adat</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -512,18 +410,43 @@ export default function AdminDashboard() {
                   ) : (
                     usersData?.data?.map(user => (
                       <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.icNumber}</TableCell>
-                        <TableCell>{user.phoneNumber}</TableCell>
-                        <TableCell className="text-muted-foreground truncate max-w-[150px]" title={user.email}>
-                          {user.email || '-'}
+                        <TableCell className="font-medium">
+                          <div className="flex flex-col">
+                            <span>{user.name}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono">{user.icNumber}</span>
+                          </div>
                         </TableCell>
                         <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            user.role === 'SuperAdmin' || user.role === 'Admin' 
-                              ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' 
-                              : 'bg-muted text-muted-foreground border border-border'
-                          }`}>
+                          <div className="flex flex-col">
+                            <span className="text-xs">{user.phoneNumber}</span>
+                            <span className="text-[9px] text-muted-foreground truncate max-w-[120px]">{user.email || '-'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            <Building2 className="w-3 h-3 text-muted-foreground/30" />
+                            <span className={cn(
+                              "text-xs",
+                              user.cawanganName ? "font-bold text-foreground" : "italic text-muted-foreground font-medium"
+                            )}>
+                              {user.cawanganName || 'Unassigned'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {user.isMandiAdat ? (
+                            <span className="inline-flex items-center gap-1 text-blue-600 font-bold text-[10px] uppercase">
+                              <CheckCircle2 className="w-3 h-3" /> Done
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-muted-foreground/40 uppercase">Pending</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${user.role === 'SuperAdmin' || user.role === 'Admin'
+                            ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
+                            : 'bg-muted text-muted-foreground border border-border'
+                            }`}>
                             {user.role}
                           </span>
                         </TableCell>
@@ -604,8 +527,8 @@ export default function AdminDashboard() {
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {editingUser && (
-            <EditUserModal 
-              user={editingUser} 
+            <EditUserModal
+              user={editingUser}
               onClose={() => {
                 setIsEditModalOpen(false);
                 setEditingUser(null);
@@ -625,6 +548,278 @@ export default function AdminDashboard() {
         title="Delete User"
         description={`Are you sure you want to delete ${deletingUser?.name}? This action cannot be undone.`}
       />
+
+      <Dialog open={isCreateUserModalOpen} onOpenChange={setIsCreateUserModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-blue-500" /> Manual User Creation
+            </DialogTitle>
+            <DialogDescription>
+              Add a single new prospect or administrator to the system.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+            className="space-y-4 pt-4"
+          >
+            <div className="grid grid-cols-2 gap-4">
+              <form.Field
+                name="name"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Full Name *</Label>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      required
+                      className="bg-background border-border"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="icNumber"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>IC Number *</Label>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      required
+                      className="bg-background border-border"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="phoneNumber"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Phone Number *</Label>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      required
+                      className="bg-background border-border"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="email"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Email</Label>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      type="email"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      className="bg-background border-border"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="uplineId"
+                children={(field) => (
+                  <div className="col-span-2">
+                    <UserLookup
+                      label="Introducer (Upline)"
+                      value={field.state.value}
+                      onChange={(val) => field.handleChange(val)}
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="cawanganId"
+                children={(field) => (
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor={field.name}>Cawangan (Branch)</Label>
+                    <select
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value || ''}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value || null)}
+                      className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
+                    >
+                      <option value="">Select Cawangan...</option>
+                      {cawangans?.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              />
+              <form.Field
+                name="isMandiAdat"
+                children={(field) => (
+                  <div className="flex items-center gap-3 col-span-2 p-3 bg-muted/30 rounded-lg border border-border">
+                    <input
+                      type="checkbox"
+                      id={field.name}
+                      checked={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.checked)}
+                      className="h-4 w-4 rounded border-border text-blue-600 focus:ring-blue-500"
+                    />
+                    <div className="space-y-0.5">
+                      <Label htmlFor={field.name} className="text-sm font-bold">Mandi Adat</Label>
+                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">Joined mandi adat.</p>
+                    </div>
+                  </div>
+                )}
+              />
+              <form.Field
+                name="role"
+                children={(field) => (
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor={field.name}>Role</Label>
+                    <select
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(parseInt(e.target.value, 10))}
+                      className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
+                    >
+                      <option value={3}>User</option>
+                      <option value={2}>Admin</option>
+                      <option value={1}>SuperAdmin</option>
+                    </select>
+                  </div>
+                )}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-6">
+              <Button type="button" variant="outline" onClick={() => setIsCreateUserModalOpen(false)}>
+                Cancel
+              </Button>
+              <form.Subscribe
+                selector={(state) => [state.canSubmit, state.isSubmitting]}
+                children={([canSubmit, isSubmitting]) => (
+                  <Button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px]"
+                    disabled={!canSubmit || isSubmitting || createUserMutation.isPending}
+                  >
+                    {(isSubmitting || createUserMutation.isPending) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Create User
+                  </Button>
+                )}
+              />
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-600">
+              <UploadCloud className="w-5 h-5" /> Bulk User Provisioning
+            </DialogTitle>
+            <DialogDescription>
+              Upload an Excel (.xlsx) file to create multiple users and hierarchies at once.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 pt-4">
+            <div className="p-4 bg-muted/30 border border-border rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Step 1: Preparation</p>
+                <Button onClick={handleDownloadTemplate} variant="link" className="h-auto p-0 text-xs text-emerald-600">
+                  <Download className="w-3 h-3 mr-1" /> Download Template
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Please use our official template to ensure data integrity. Ensure all required columns (Name, IC, Phone) are correctly filled.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-1">Step 2: Upload File</p>
+              <input
+                type="file"
+                accept=".xlsx"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+              />
+
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer",
+                  selectedImportFile
+                    ? "border-emerald-500 bg-emerald-50/30"
+                    : "border-border bg-muted/10 hover:bg-muted/20 hover:border-muted-foreground/30"
+                )}
+              >
+                {importMutation.isPending ? (
+                  <Loader2 className="w-10 h-10 mb-2 text-emerald-500 animate-spin" />
+                ) : selectedImportFile ? (
+                  <CheckCircle2 className="w-10 h-10 mb-2 text-emerald-500" />
+                ) : (
+                  <UploadCloud className="w-10 h-10 mb-2 text-muted-foreground/30" />
+                )}
+
+                <div className="text-center px-6">
+                  {selectedImportFile ? (
+                    <>
+                      <p className="text-sm font-bold text-emerald-700">{selectedImportFile.name}</p>
+                      <p className="text-[10px] text-emerald-600/70 font-medium">Ready to process ({(selectedImportFile.size / 1024).toFixed(1)} KB)</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-foreground">Click to browse or drag file here</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">Microsoft Excel (.xlsx) only</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                onClick={handleStartImport}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                disabled={!selectedImportFile?.base64 || importMutation.isPending}
+              >
+                {importMutation.isPending ? 'Processing Import...' : 'Start Bulk Import'}
+              </Button>
+              <Button
+                variant="ghost"
+                className="text-xs text-muted-foreground"
+                onClick={() => setIsImportModalOpen(false)}
+                disabled={importMutation.isPending}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -648,11 +843,11 @@ export function EditUserModal({ user: summaryUser, onClose, onSave, isSaving }) 
   if (!user) return null;
 
   return (
-    <EditUserForm 
-      user={user} 
-      onClose={onClose} 
-      onSave={onSave} 
-      isSaving={isSaving} 
+    <EditUserForm
+      user={user}
+      onClose={onClose}
+      onSave={onSave}
+      isSaving={isSaving}
     />
   );
 }
@@ -669,10 +864,17 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
       email: user.email || '',
       role: user.role === 'SuperAdmin' ? 1 : user.role === 'Admin' ? 2 : 3,
       uplineId: user.uplineId || null,
+      cawanganId: user.cawanganId || null,
+      isMandiAdat: user.isMandiAdat || false,
     },
     onSubmit: async ({ value }) => {
       onSave(value);
     },
+  });
+
+  const { data: cawangans } = useQuery({
+    queryKey: ['cawangans'],
+    queryFn: () => fetchClient('/cawangan'),
   });
 
   const { data: downlinesData, isLoading: isLoadingDownlines } = useQuery({
@@ -736,21 +938,21 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
           Managing {user.name}
         </DialogDescription>
       </DialogHeader>
-      
+
       <div className="flex gap-4 border-b border-border mt-2">
-        <button 
+        <button
           className={`pb-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'details' ? 'border-blue-500 text-blue-500' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
           onClick={() => setActiveTab('details')}
         >
           Details
         </button>
-        <button 
+        <button
           className={`pb-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'downlines' ? 'border-blue-500 text-blue-500' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
           onClick={() => setActiveTab('downlines')}
         >
           Downlines
         </button>
-        <button 
+        <button
           className={`pb-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'memberships' ? 'border-blue-500 text-blue-500' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
           onClick={() => setActiveTab('memberships')}
         >
@@ -760,12 +962,12 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
 
       <div className="pt-4">
         {activeTab === 'details' ? (
-          <form 
+          <form
             onSubmit={(e) => {
               e.preventDefault();
               e.stopPropagation();
               form.handleSubmit();
-            }} 
+            }}
             className="space-y-4"
           >
             <div className="grid grid-cols-2 gap-4">
@@ -774,12 +976,12 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
                 children={(field) => (
                   <div className="space-y-2">
                     <Label htmlFor={`edit-${field.name}`}>Full Name *</Label>
-                    <Input 
+                    <Input
                       id={`edit-${field.name}`}
                       value={field.state.value}
                       onChange={(e) => field.handleChange(e.target.value)}
-                      required 
-                      className="bg-background border-border" 
+                      required
+                      className="bg-background border-border"
                     />
                   </div>
                 )}
@@ -789,12 +991,12 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
                 children={(field) => (
                   <div className="space-y-2">
                     <Label htmlFor={`edit-${field.name}`}>IC Number *</Label>
-                    <Input 
+                    <Input
                       id={`edit-${field.name}`}
                       value={field.state.value}
                       onChange={(e) => field.handleChange(e.target.value)}
-                      required 
-                      className="bg-background border-border" 
+                      required
+                      className="bg-background border-border"
                     />
                   </div>
                 )}
@@ -804,12 +1006,12 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
                 children={(field) => (
                   <div className="space-y-2">
                     <Label htmlFor={`edit-${field.name}`}>Phone Number *</Label>
-                    <Input 
+                    <Input
                       id={`edit-${field.name}`}
                       value={field.state.value}
                       onChange={(e) => field.handleChange(e.target.value)}
-                      required 
-                      className="bg-background border-border" 
+                      required
+                      className="bg-background border-border"
                     />
                   </div>
                 )}
@@ -819,12 +1021,12 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
                 children={(field) => (
                   <div className="space-y-2">
                     <Label htmlFor={`edit-${field.name}`}>Email</Label>
-                    <Input 
+                    <Input
                       id={`edit-${field.name}`}
                       type="email"
                       value={field.state.value}
                       onChange={(e) => field.handleChange(e.target.value)}
-                      className="bg-background border-border" 
+                      className="bg-background border-border"
                     />
                   </div>
                 )}
@@ -833,12 +1035,49 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
                 name="uplineId"
                 children={(field) => (
                   <div className="col-span-2">
-                    <UserLookup 
-                      label="Introducer (Upline)" 
-                      value={field.state.value} 
+                    <UserLookup
+                      label="Introducer (Upline)"
+                      value={field.state.value}
                       initialData={user.upline}
-                      onChange={(val) => field.handleChange(val)} 
+                      onChange={(val) => field.handleChange(val)}
                     />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="cawanganId"
+                children={(field) => (
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor={`edit-${field.name}`}>Cawangan (Branch)</Label>
+                    <select
+                      id={`edit-${field.name}`}
+                      value={field.state.value || ''}
+                      onChange={(e) => field.handleChange(e.target.value || null)}
+                      className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
+                    >
+                      <option value="">Select Cawangan...</option>
+                      {cawangans?.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              />
+              <form.Field
+                name="isMandiAdat"
+                children={(field) => (
+                  <div className="flex items-center gap-3 col-span-2 p-3 bg-muted/30 rounded-lg border border-border">
+                    <input
+                      type="checkbox"
+                      id={`edit-${field.name}`}
+                      checked={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.checked)}
+                      className="h-4 w-4 rounded border-border text-blue-600 focus:ring-blue-500"
+                    />
+                    <div className="space-y-0.5">
+                      <Label htmlFor={`edit-${field.name}`} className="text-sm font-bold">Mandi Adat</Label>
+                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">Joined mandi adat</p>
+                    </div>
                   </div>
                 )}
               />
@@ -869,9 +1108,9 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
               <form.Subscribe
                 selector={(state) => [state.canSubmit, state.isSubmitting]}
                 children={([canSubmit, isSubmitting]) => (
-                  <Button 
-                    type="submit" 
-                    className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]" 
+                  <Button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]"
                     disabled={!canSubmit || isSubmitting || isSaving}
                   >
                     {(isSubmitting || isSaving) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -884,8 +1123,8 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
         ) : activeTab === 'downlines' ? (
           <div className="space-y-4">
             <div className="pb-4 border-b border-border">
-              <UserLookup 
-                label="Add New Downline" 
+              <UserLookup
+                label="Add New Downline"
                 placeholder="Search user to add to team..."
                 value={null}
                 onChange={(val) => val && addDownlineMutation.mutate(val)}
@@ -903,9 +1142,9 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
                       <p className="text-sm font-medium">{dl.name}</p>
                       <p className="text-[10px] text-muted-foreground">{dl.icNumber} | {dl.phoneNumber}</p>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => removeDownlineMutation.mutate(dl.id)}
                     >
@@ -927,7 +1166,7 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Program Type</Label>
-                  <select 
+                  <select
                     id="program-type-select"
                     className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
                     onChange={(e) => {
