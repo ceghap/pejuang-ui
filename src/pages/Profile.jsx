@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { fetchClient } from '@/api/fetchClient';
 import OrderTable from '@/components/finance/OrderTable';
+import { cn } from '@/lib/utils';
 
 export default function Profile() {
   const { user: authUser } = useAuthStore();
@@ -23,6 +24,11 @@ export default function Profile() {
     queryKey: ['user-profile', authUser?.id],
     queryFn: () => fetchClient(`/users/${authUser?.id}`),
     enabled: !!authUser?.id
+  });
+
+  const { data: upcomingEvents, isLoading: isLoadingEvents } = useQuery({
+    queryKey: ['upcoming-events'],
+    queryFn: () => fetchClient('/calendar?futureOnly=true'),
   });
 
   const { data: orders, isLoading: isLoadingOrders } = useQuery({
@@ -55,53 +61,98 @@ export default function Profile() {
 
         {/* Profile Details Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <Card className="bg-card border-border lg:col-span-2 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-xl font-medium flex items-center gap-2">
-                <User className="text-blue-500 w-5 h-5" /> Account Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                  <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Full Name</p>
-                  <p className="text-lg font-medium">{user?.name || 'Unknown'}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">IC Number</p>
-                  <p className="text-lg font-medium font-mono tracking-tighter">{user?.icNumber || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Phone Number</p>
-                  <p className="text-lg font-medium font-mono tracking-tighter">{user?.phoneNumber || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Role Status</p>
-                  <div className="pt-1">
-                    <span className="inline-flex items-center rounded-md bg-blue-500/10 px-2.5 py-1 text-xs font-bold text-blue-500 ring-1 ring-inset ring-blue-500/30 uppercase tracking-tighter">
-                      {user?.role || 'Member'}
-                    </span>
+          
+          {/* Main Column: Account Details + Order History */}
+          <div className="lg:col-span-2 space-y-8">
+            <Card className="bg-card border-border shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-xl font-medium flex items-center gap-2">
+                  <User className="text-blue-500 w-5 h-5" /> Account Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Full Name</p>
+                    <p className="text-lg font-medium">{user?.name || 'Unknown'}</p>
                   </div>
+                  <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">IC Number</p>
+                    <p className="text-lg font-medium font-mono tracking-tighter">{user?.icNumber || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Phone Number</p>
+                    <p className="text-lg font-medium font-mono tracking-tighter">{user?.phoneNumber || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Role Status</p>
+                    <div className="pt-1">
+                      <span className="inline-flex items-center rounded-md bg-blue-500/10 px-2.5 py-1 text-xs font-bold text-blue-500 ring-1 ring-inset ring-blue-500/30 uppercase tracking-tighter">
+                        {user?.role || 'Member'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {user?.upline && (
+                  <div className="pt-6 border-t border-border/50">
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-3 opacity-70">Introducer (Upline)</p>
+                    <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-xl border border-border/50 w-fit min-w-[240px] hover:bg-muted/50 transition-colors">
+                      <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center ring-4 ring-blue-500/5">
+                        <User className="w-5 h-5 text-blue-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">{user.upline.name}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black opacity-50">Direct Upline</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Order History Integrated in Main Column */}
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-light tracking-tight">Your <span className="font-semibold">Order History</span></h2>
                 </div>
               </div>
 
-              {user?.upline && (
-                <div className="pt-6 border-t border-border/50">
-                  <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-3 opacity-70">Introducer (Upline)</p>
-                  <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-xl border border-border/50 w-fit min-w-[240px] hover:bg-muted/50 transition-colors">
-                    <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center ring-4 ring-blue-500/5">
-                      <User className="w-5 h-5 text-blue-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold">{user.upline.name}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black opacity-50">Direct Upline</p>
+              <Card className="bg-card border-border shadow-sm overflow-hidden">
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/50 pb-6">
+                  <div className="flex flex-1 items-center gap-2 w-full sm:max-w-sm">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search products..."
+                        className="pl-9 bg-muted/20 border-border h-9 text-xs"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                      />
                     </div>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-3 h-3 text-muted-foreground" />
+                    <select 
+                      className="bg-muted/20 border border-border rounded-md text-[10px] font-bold uppercase h-9 px-2 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                    >
+                      <option value="all">All Status</option>
+                      <option value="Active">Active</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <OrderTable orders={orders} isLoading={isLoadingOrders} isAdmin={false} />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
 
+          {/* Side Column: Widgets */}
           <div className="space-y-8">
             <Card className="bg-card border-border shadow-sm">
               <CardHeader>
@@ -158,48 +209,78 @@ export default function Profile() {
                 )}
               </CardContent>
             </Card>
-          </div>
-        </div>
 
-        {/* Separated Order History Section - Just like Orders Page */}
-        <div className="space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-light tracking-tight">Your <span className="font-semibold">Order History</span></h2>
-              <p className="text-muted-foreground text-xs mt-1">Track and manage your installment payments and digital receipts.</p>
-            </div>
+            <Card className="bg-card border-border overflow-hidden shadow-sm">
+              <CardHeader className="bg-blue-500/5 border-b border-border py-4">
+                <CardTitle className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                  <Calendar className="text-blue-500 w-4 h-4" /> Upcoming Events
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {isLoadingEvents ? (
+                  <div className="p-6 flex justify-center">
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : upcomingEvents?.length > 0 ? (
+                  <div className="divide-y divide-border max-h-[400px] overflow-y-auto custom-scrollbar">
+                    {upcomingEvents.slice(0, 5).map((event) => {
+                      const isToday = new Date(event.date).toDateString() === new Date().toDateString();
+                      
+                      return (
+                        <div 
+                          key={event.id} 
+                          className={cn(
+                            "p-4 transition-colors",
+                            isToday ? "bg-blue-500/10 hover:bg-blue-500/15" : "hover:bg-muted/20"
+                          )}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={cn(
+                              "flex flex-col items-center justify-center min-w-[48px] h-[48px] rounded-lg border",
+                              isToday ? "bg-blue-500 border-blue-600 text-white" : "bg-muted border-border"
+                            )}>
+                              <span className={cn(
+                                "text-[10px] font-black uppercase leading-none",
+                                isToday ? "text-white/80" : "text-muted-foreground"
+                              )}>
+                                {new Date(event.date).toLocaleDateString('en-GB', { month: 'short' })}
+                              </span>
+                              <span className="text-xl font-black tracking-tighter leading-none mt-1">
+                                {new Date(event.date).getDate()}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-xs font-bold leading-tight line-clamp-2">{event.title}</p>
+                                {isToday && (
+                                  <span className="shrink-0 text-[8px] font-black bg-blue-600 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">Today</span>
+                                )}
+                              </div>
+                              {event.description && (
+                                <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">{event.description}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {upcomingEvents.length > 5 && (
+                      <div className="p-3 text-center bg-muted/10">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                          + {upcomingEvents.length - 5} More Events Coming
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-10 text-center">
+                    <Calendar className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
+                    <p className="text-xs text-muted-foreground italic font-medium">No upcoming events.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
-
-          <Card className="bg-card border-border shadow-sm overflow-hidden">
-            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-border/50 pb-6">
-              <div className="flex flex-1 items-center gap-2 w-full sm:max-w-sm">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by Product Name..."
-                    className="pl-9 bg-muted/20 border-border h-9 text-sm"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-muted-foreground mr-1" />
-                <select 
-                  className="bg-muted/20 border border-border rounded-md text-[11px] font-bold uppercase h-9 px-3 outline-none focus:ring-2 focus:ring-emerald-500/20"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <option value="all">All Status</option>
-                  <option value="Active">Active</option>
-                  <option value="Completed">Completed</option>
-                </select>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <OrderTable orders={orders} isLoading={isLoadingOrders} isAdmin={false} />
-            </CardContent>
-          </Card>
         </div>
 
       </div>

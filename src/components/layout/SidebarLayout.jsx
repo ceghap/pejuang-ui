@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { Network, LayoutDashboard, User, LogOut, ShoppingBag, Receipt, IdCard, Menu, X, Layers, DollarSign } from 'lucide-react';
+import { Network, LayoutDashboard, User, LogOut, ShoppingBag, Receipt, IdCard, Menu, X, Layers, DollarSign, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +22,7 @@ export default function SidebarLayout() {
 
   const adminLinks = [
     { label: 'User Management', path: '/admin/users', icon: LayoutDashboard },
+    { label: 'Calendar (Takwim)', path: '/admin/calendar', icon: Calendar },
     { label: 'Billing & Orders', path: '/orders', icon: Receipt },
     { label: 'Introducer Payouts', path: '/admin/commissions', icon: Layers },
     { label: 'Network Hierarchy', path: '/admin/hierarchy', icon: Network },

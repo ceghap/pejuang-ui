@@ -9,6 +9,7 @@ import MembershipPrograms from './pages/MembershipPrograms';
 import MembershipProgramDetails from './pages/MembershipProgramDetails';
 import Products from './pages/Products';
 import Categories from './pages/Categories';
+import ManageCalendar from './pages/ManageCalendar';
 import Commissions from './pages/Commissions';
 import TierConfigs from './pages/TierConfigs';
 import Shop from './pages/Shop';
@@ -112,6 +113,7 @@ const router = createBrowserRouter([
           { path: '/admin/memberships/:prefix', element: <MembershipProgramDetails /> },
           { path: '/admin/products', element: <Products /> },
           { path: '/admin/categories', element: <Categories /> },
+          { path: '/admin/calendar', element: <ManageCalendar /> },
           { path: '/admin/tiers', element: <TierConfigs /> }
         ]
       }
