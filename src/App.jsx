@@ -12,6 +12,7 @@ import Categories from './pages/Categories';
 import ManageCalendar from './pages/ManageCalendar';
 import Commissions from './pages/Commissions';
 import TierConfigs from './pages/TierConfigs';
+import FinancialDashboard from './pages/FinancialDashboard';
 import Shop from './pages/Shop';
 import Profile from './pages/Profile';
 import MyCommissions from './pages/MyCommissions';
@@ -114,6 +115,7 @@ const router = createBrowserRouter([
           { path: '/admin/products', element: <Products /> },
           { path: '/admin/categories', element: <Categories /> },
           { path: '/admin/calendar', element: <ManageCalendar /> },
+          { path: '/admin/finance', element: <FinancialDashboard /> },
           { path: '/admin/tiers', element: <TierConfigs /> }
         ]
       }
