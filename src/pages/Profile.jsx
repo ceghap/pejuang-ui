@@ -131,8 +131,8 @@ export default function Profile() {
                           <p className="text-sm font-medium">{user.profile.position || '-'}</p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Belt Rank</p>
-                          <p className="text-sm font-medium">{user.profile.beltRank || '-'}</p>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Bengkung</p>
+                          <p className="text-sm font-medium">{user.profile.bengkung || '-'}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Baiah Year</p>

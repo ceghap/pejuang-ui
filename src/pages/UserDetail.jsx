@@ -54,7 +54,7 @@ export default function UserDetail() {
         occupation: user?.profile?.occupation || '',
         address: user?.profile?.address || '',
         position: user?.profile?.position || '',
-        beltRank: user?.profile?.beltRank || '',
+        bengkung: user?.profile?.bengkung || '',
         baiahYear: user?.profile?.baiahYear || null,
         mandiAdatYear: user?.profile?.mandiAdatYear || null,
         mandiPelangirYear: user?.profile?.mandiPelangirYear || null,
@@ -86,7 +86,7 @@ export default function UserDetail() {
           occupation: user.profile?.occupation || '',
           address: user.profile?.address || '',
           position: user.profile?.position || '',
-          beltRank: user.profile?.beltRank || '',
+          bengkung: user.profile?.bengkung || '',
           baiahYear: user.profile?.baiahYear || null,
           mandiAdatYear: user.profile?.mandiAdatYear || null,
           mandiPelangirYear: user.profile?.mandiPelangirYear || null,
@@ -238,9 +238,9 @@ export default function UserDetail() {
                       <Input {...field.state} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} className="bg-muted/30 border-border" />
                     </div>
                   )} />
-                  <form.Field name="profile.beltRank" children={(field) => (
+                  <form.Field name="profile.bengkung" children={(field) => (
                     <div className="space-y-2">
-                      <Label className="text-[10px] uppercase font-black tracking-widest opacity-60">Belt / Rank</Label>
+                      <Label className="text-[10px] uppercase font-black tracking-widest opacity-60">Bengkung</Label>
                       <Input {...field.state} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} className="bg-muted/30 border-border" />
                     </div>
                   )} />

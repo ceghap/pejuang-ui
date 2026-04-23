@@ -793,7 +793,7 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
         occupation: user.profile?.occupation || '',
         address: user.profile?.address || '',
         position: user.profile?.position || '',
-        beltRank: user.profile?.beltRank || '',
+        bengkung: user.profile?.bengkung || '',
         baiahYear: user.profile?.baiahYear || null,
         mandiAdatYear: user.profile?.mandiAdatYear || null,
         mandiPelangirYear: user.profile?.mandiPelangirYear || null,
@@ -1086,10 +1086,10 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
                 )}
               />
               <form.Field
-                name="profile.beltRank"
+                name="profile.bengkung"
                 children={(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={`edit-${field.name}`}>Belt Rank (Tahap Bengkung)</Label>
+                    <Label htmlFor={`edit-${field.name}`}>Bengkung</Label>
                     <Input
                       id={`edit-${field.name}`}
                       value={field.state.value}
