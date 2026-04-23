@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { Network, LayoutDashboard, TrendingUp, Building2, User, LogOut, ShoppingBag, Receipt, IdCard, Menu, X, Layers, DollarSign, Calendar } from 'lucide-react';
+import { Network, ShieldCheck, LayoutDashboard, TrendingUp, Building2, User, LogOut, ShoppingBag, Receipt, IdCard, Menu, X, Layers, DollarSign, Calendar } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -88,7 +88,10 @@ export default function SidebarLayout() {
 
         {/* Brand Header */}
         <div className="h-16 flex items-center justify-between px-6 border-b border-border shrink-0">
-          <img src="/logopejuang.svg" alt="Pejuang Logo" className="h-11 w-auto" />
+          <div className="flex items-center">
+            <ShieldCheck className="w-6 h-6 text-emerald-500 mr-2" />
+            <span className="text-xl tracking-wider font-semibold">PEJUANG</span>
+          </div>
           <Button
             variant="ghost"
             size="sm"
@@ -154,7 +157,8 @@ export default function SidebarLayout() {
             <Menu className="w-6 h-6" />
           </Button>
           <div className="flex items-center">
-            <img src="/logopejuang.svg" alt="Pejuang Logo" className="h-9 w-auto" />
+            <ShieldCheck className="w-5 h-5 text-emerald-500 mr-2" />
+            <span className="text-lg tracking-wider font-semibold">PEJUANG</span>
           </div>
         </header>
 

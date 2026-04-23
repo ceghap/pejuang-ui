@@ -65,7 +65,9 @@ export default function ChangePassword() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40rem] h-[40rem] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in-95 duration-500 flex flex-col items-center">
-        <img src="/logopejuang.svg" alt="Pejuang Logo" className="h-24 w-auto mb-8" />
+        <h1 className="text-3xl font-light text-zinc-100 mb-8 text-center tracking-tight">
+          Pejuang <span className="font-semibold text-white">GM</span>
+        </h1>
 
         <Card className="bg-card border-border text-card-foreground shadow-2xl backdrop-blur-xl bg-opacity-80 w-full">
           <CardHeader className="space-y-1 relative overflow-hidden">
