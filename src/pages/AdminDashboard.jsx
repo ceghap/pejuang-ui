@@ -186,6 +186,11 @@ export default function AdminDashboard() {
     queryFn: () => fetchClient('/cawangan'),
   });
 
+  const { data: programs } = useQuery({
+    queryKey: ['programs'],
+    queryFn: () => fetchClient('/memberships/programs'),
+  });
+
   const createUserMutation = useMutation({
     mutationFn: (data) => fetchClient('/users', {
       method: 'POST',
@@ -252,7 +257,8 @@ export default function AdminDashboard() {
       role: 3,
       uplineId: null,
       cawanganId: null,
-      isMandiAdat: false
+      isMandiAdat: false,
+      programName: ''
     },
     onSubmit: async ({ value }) => {
       createUserMutation.mutate(value);
@@ -665,6 +671,28 @@ export default function AdminDashboard() {
                       <option value="">Select Cawangan...</option>
                       {cawangans?.map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              />
+              <form.Field
+                name="programName"
+                children={(field) => (
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor={field.name}>Membership Program</Label>
+                    <select
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value || ''}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value || null)}
+                      className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
+                    >
+                      <option value="">No Membership</option>
+                      <option value="Normal">General Member (GM)</option>
+                      {programs?.filter(p => p.name !== 'Normal').map(p => (
+                        <option key={p.id} value={p.name}>{p.description} ({p.prefix})</option>
                       ))}
                     </select>
                   </div>
