@@ -90,7 +90,7 @@ export default function SidebarLayout() {
         <div className="h-16 flex items-center justify-between px-6 border-b border-border shrink-0">
           <div className="flex items-center">
             <ShieldCheck className="w-6 h-6 text-emerald-500 mr-2" />
-            <span className="text-xl tracking-wider font-semibold">PEJUANG</span>
+            <span className="text-xl tracking-wider font-semibold">PEJUANG GM</span>
           </div>
           <Button
             variant="ghost"
@@ -158,7 +158,7 @@ export default function SidebarLayout() {
           </Button>
           <div className="flex items-center">
             <ShieldCheck className="w-5 h-5 text-emerald-500 mr-2" />
-            <span className="text-lg tracking-wider font-semibold">PEJUANG</span>
+            <span className="text-lg tracking-wider font-semibold">PEJUANG GM</span>
           </div>
         </header>
 
