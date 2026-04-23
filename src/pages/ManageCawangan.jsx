@@ -25,7 +25,7 @@ import {
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { fetchClient } from '@/api/fetchClient';
 import { toast } from 'sonner';
-import { UserLookup } from './AdminDashboard';
+import { UserLookup } from '@/components/ui/user-lookup';
 
 export default function ManageCawangan() {
   const queryClient = useQueryClient();

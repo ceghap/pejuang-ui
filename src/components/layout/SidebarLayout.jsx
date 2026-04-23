@@ -16,20 +16,25 @@ export default function SidebarLayout() {
 
   const userLinks = [
     { label: 'Profile', path: '/profile', icon: User },
+    { label: 'My Gelanggang', path: '/gelanggang', icon: Layers },
     { label: 'Shop', path: '/shop', icon: ShoppingBag },
     { label: 'My Bills & History', path: '/orders', icon: Receipt },
     { label: 'My Commissions', path: '/commissions', icon: DollarSign },
   ];
 
-  const adminLinks = [
+  const gayongLinks = [
     { label: 'User Management', path: '/admin/users', icon: LayoutDashboard },
     { label: 'Calendar (Takwim)', path: '/admin/calendar', icon: Calendar },
     { label: 'Cawangan Management', path: '/admin/cawangan', icon: Building2 },
+    { label: 'Gelanggang Management', path: '/admin/gelanggang', icon: Layers },
+    { label: 'Membership Programs', path: '/admin/memberships', icon: IdCard },
+  ];
+
+  const pejuangLinks = [
     { label: 'Financial Hub', path: '/admin/finance', icon: TrendingUp },
     { label: 'Billing & Orders', path: '/orders', icon: Receipt },
     { label: 'Introducer Payouts', path: '/admin/commissions', icon: Layers },
     { label: 'Network Hierarchy', path: '/admin/hierarchy', icon: Network },
-    { label: 'Membership Programs', path: '/admin/memberships', icon: IdCard },
     { label: 'Product Catalog', path: '/admin/products', icon: ShoppingBag },
     { label: 'Product Categories', path: '/admin/categories', icon: LayoutDashboard },
     { label: 'Order Tiers', path: '/admin/tiers', icon: Layers },
@@ -103,10 +108,17 @@ export default function SidebarLayout() {
           </div>
 
           {isAdmin && (
-            <div>
-              <div className="text-xs font-semibold text-zinc-600 tracking-wider uppercase mb-3 px-2">Administration</div>
-              {renderLinks(adminLinks)}
-            </div>
+            <>
+              <div>
+                <div className="text-xs font-semibold text-zinc-600 tracking-wider uppercase mb-3 px-2">Gayong Maarifat</div>
+                {renderLinks(gayongLinks)}
+              </div>
+
+              <div>
+                <div className="text-xs font-semibold text-zinc-600 tracking-wider uppercase mb-3 px-2">Pejuang313</div>
+                {renderLinks(pejuangLinks)}
+              </div>
+            </>
           )}
 
         </div>

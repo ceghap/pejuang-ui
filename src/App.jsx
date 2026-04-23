@@ -19,6 +19,9 @@ import Profile from './pages/Profile';
 import MyCommissions from './pages/MyCommissions';
 import Orders from './pages/Orders';
 import OrderDetails from './pages/OrderDetails';
+import MyGelanggang from './pages/MyGelanggang';
+import GelanggangDetail from './pages/GelanggangDetail';
+import ManageGelanggang from './pages/ManageGelanggang';
 import ErrorPage from './pages/ErrorPage';
 import SidebarLayout from './components/layout/SidebarLayout';
 import { Toaster } from './components/ui/sonner';
@@ -96,7 +99,9 @@ const router = createBrowserRouter([
           { path: '/shop', element: <Shop /> },
           { path: '/orders', element: <Orders /> },
           { path: '/commissions', element: <MyCommissions /> },
-          { path: '/orders/:id', element: <OrderDetails /> }
+          { path: '/orders/:id', element: <OrderDetails /> },
+          { path: '/gelanggang', element: <MyGelanggang /> },
+          { path: '/gelanggang/:id', element: <GelanggangDetail /> }
         ]
       }
     ]
@@ -117,6 +122,7 @@ const router = createBrowserRouter([
           { path: '/admin/categories', element: <Categories /> },
           { path: '/admin/calendar', element: <ManageCalendar /> },
           { path: '/admin/cawangan', element: <ManageCawangan /> },
+          { path: '/admin/gelanggang', element: <ManageGelanggang /> },
           { path: '/admin/finance', element: <FinancialDashboard /> },
           { path: '/admin/tiers', element: <TierConfigs /> }
         ]
