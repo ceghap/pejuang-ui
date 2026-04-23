@@ -56,6 +56,7 @@ export default function AdminDashboard() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState(null);
   const [selectedImportFile, setSelectedImportFile] = useState(null);
+  const [importCawanganId, setImportCawanganId] = useState('');
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -160,9 +161,9 @@ export default function AdminDashboard() {
   });
 
   const importMutation = useMutation({
-    mutationFn: (base64) => fetchClient('/users/import', {
+    mutationFn: (payload) => fetchClient('/users/import', {
       method: 'POST',
-      body: JSON.stringify({ fileBase64: base64 })
+      body: JSON.stringify(payload)
     }),
     onSuccess: (data) => {
       if (data.failed > 0) {
@@ -201,7 +202,10 @@ export default function AdminDashboard() {
 
   const handleStartImport = () => {
     if (selectedImportFile?.base64) {
-      importMutation.mutate(selectedImportFile.base64);
+      importMutation.mutate({
+        FileBase64: selectedImportFile.base64,
+        CawanganId: importCawanganId || null
+      });
     }
   };
 
@@ -663,7 +667,21 @@ export default function AdminDashboard() {
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-1">Step 2: Upload File</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-1">Step 2: Assign Branch (Optional)</p>
+              <select
+                className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
+                value={importCawanganId}
+                onChange={(e) => setImportCawanganId(e.target.value)}
+              >
+                <option value="">No Branch Assigned</option>
+                {cawangans?.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-1">Step 3: Upload File</p>
               <input
                 type="file"
                 accept=".xlsx"
