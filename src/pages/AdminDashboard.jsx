@@ -57,6 +57,25 @@ export default function AdminDashboard() {
   const [deletingUser, setDeletingUser] = useState(null);
   const [selectedImportFile, setSelectedImportFile] = useState(null);
   const [importCawanganId, setImportCawanganId] = useState('');
+  const [importPreview, setImportPreview] = useState(null);
+
+  const validateMutation = useMutation({
+    mutationFn: (payload) => fetchClient('/users/import', {
+      method: 'POST',
+      body: JSON.stringify({ ...payload, ValidateOnly: true })
+    }),
+    onSuccess: (data) => {
+      setImportPreview(data);
+      if (!data.formatValid) {
+        toast.error("Format Error", { description: data.errors[0] });
+      } else {
+        toast.success(`Format verified! Found ${data.totalFound} users.`);
+      }
+    },
+    onError: (error) => {
+      toast.error("Verification failed", { description: error.message });
+    }
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -188,16 +207,24 @@ export default function AdminDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setImportPreview(null);
     const reader = new FileReader();
     reader.onload = (event) => {
+      const base64 = event.target.result;
       setSelectedImportFile({
         name: file.name,
         size: file.size,
-        base64: event.target.result
+        base64: base64
       });
     };
     reader.readAsDataURL(file);
     e.target.value = '';
+  };
+
+  const handleVerify = () => {
+    if (selectedImportFile?.base64) {
+      validateMutation.mutate({ FileBase64: selectedImportFile.base64 });
+    }
   };
 
   const handleStartImport = () => {
@@ -681,7 +708,7 @@ export default function AdminDashboard() {
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-1">Step 3: Upload File</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-1">Step 3: Upload & Verify File</p>
               <input
                 type="file"
                 accept=".xlsx"
@@ -693,25 +720,25 @@ export default function AdminDashboard() {
               <div
                 onClick={() => fileInputRef.current?.click()}
                 className={cn(
-                  "h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer",
+                  "h-32 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer",
                   selectedImportFile
                     ? "border-emerald-500 bg-emerald-50/30"
                     : "border-border bg-muted/10 hover:bg-muted/20 hover:border-muted-foreground/30"
                 )}
               >
-                {importMutation.isPending ? (
-                  <Loader2 className="w-10 h-10 mb-2 text-emerald-500 animate-spin" />
+                {validateMutation.isPending ? (
+                  <Loader2 className="w-8 h-8 mb-2 text-emerald-500 animate-spin" />
                 ) : selectedImportFile ? (
-                  <CheckCircle2 className="w-10 h-10 mb-2 text-emerald-500" />
+                  <CheckCircle2 className="w-8 h-8 mb-2 text-emerald-500" />
                 ) : (
-                  <UploadCloud className="w-10 h-10 mb-2 text-muted-foreground/30" />
+                  <UploadCloud className="w-8 h-8 mb-2 text-muted-foreground/30" />
                 )}
 
                 <div className="text-center px-6">
                   {selectedImportFile ? (
                     <>
                       <p className="text-sm font-bold text-emerald-700">{selectedImportFile.name}</p>
-                      <p className="text-[10px] text-emerald-600/70 font-medium">Ready to process ({(selectedImportFile.size / 1024).toFixed(1)} KB)</p>
+                      <p className="text-[10px] text-emerald-600/70 font-medium">Click to change file</p>
                     </>
                   ) : (
                     <>
@@ -721,20 +748,79 @@ export default function AdminDashboard() {
                   )}
                 </div>
               </div>
+
+              {/* Import Preview Section */}
+              {importPreview && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                  {!importPreview.formatValid ? (
+                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs font-bold">Invalid Format</p>
+                        <p className="text-[10px] opacity-80">{importPreview.errors[0]}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between px-1">
+                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">Preview (First 5 of {importPreview.totalFound})</p>
+                        <p className="text-[10px] text-muted-foreground">Format verified!</p>
+                      </div>
+                      <div className="rounded-lg border border-border bg-background overflow-hidden">
+                        <Table>
+                          <TableHeader className="bg-muted/50">
+                            <TableRow className="hover:bg-transparent">
+                              <TableHead className="h-7 text-[9px] uppercase font-bold px-3">Name</TableHead>
+                              <TableHead className="h-7 text-[9px] uppercase font-bold px-3">IC / Phone</TableHead>
+                              <TableHead className="h-7 text-[9px] uppercase font-bold px-3">Member ID</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {importPreview.preview.map((row, idx) => (
+                              <TableRow key={idx} className="hover:bg-transparent border-b last:border-0">
+                                <TableCell className="py-1 px-3 text-[10px] font-medium">{row.name}</TableCell>
+                                <TableCell className="py-1 px-3 text-[10px] text-muted-foreground">
+                                  {row.icNumber} / {row.phoneNumber}
+                                </TableCell>
+                                <TableCell className="py-1 px-3 text-[10px] font-mono text-blue-600">
+                                  {row.membershipId || '-'}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-2 pt-2">
-              <Button
-                onClick={handleStartImport}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
-                disabled={!selectedImportFile?.base64 || importMutation.isPending}
-              >
-                {importMutation.isPending ? 'Processing Import...' : 'Start Bulk Import'}
-              </Button>
+              {!importPreview?.formatValid ? (
+                <Button
+                  onClick={handleVerify}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                  disabled={!selectedImportFile?.base64 || validateMutation.isPending}
+                >
+                  {validateMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying...</> : 'Verify File'}
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleStartImport}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                  disabled={importMutation.isPending}
+                >
+                  {importMutation.isPending ? 'Processing Import...' : 'Confirm & Start Bulk Import'}
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 className="text-xs text-muted-foreground"
-                onClick={() => setIsImportModalOpen(false)}
+                onClick={() => {
+                  setIsImportModalOpen(false);
+                  setImportPreview(null);
+                }}
                 disabled={importMutation.isPending}
               >
                 Cancel

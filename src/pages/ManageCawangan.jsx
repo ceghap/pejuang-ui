@@ -87,6 +87,7 @@ export default function ManageCawangan() {
   const form = useForm({
     defaultValues: {
       name: '',
+      code: '',
       location: '',
       address: '',
       contactNumber: '',
@@ -104,6 +105,7 @@ export default function ManageCawangan() {
   const handleEdit = (cawangan) => {
     setEditingCawangan(cawangan);
     form.setFieldValue('name', cawangan.name);
+    form.setFieldValue('code', cawangan.code || '');
     form.setFieldValue('location', cawangan.location || '');
     form.setFieldValue('address', cawangan.address || '');
     form.setFieldValue('contactNumber', cawangan.contactNumber || '');
@@ -165,7 +167,14 @@ export default function ManageCawangan() {
                 <TableRow key={cawangan.id}>
                   <TableCell className="font-bold">
                     <div className="flex flex-col">
-                        <span>{cawangan.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span>{cawangan.name}</span>
+                          {cawangan.code && (
+                            <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 text-[9px] font-black uppercase tracking-tighter">
+                              {cawangan.code}
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[10px] text-muted-foreground uppercase tracking-widest">{cawangan.location}</span>
                     </div>
                   </TableCell>
@@ -196,9 +205,12 @@ export default function ManageCawangan() {
                       )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1.5 font-medium">
-                      <Users className="w-3 h-3 text-blue-500/50" />
-                      <span className="text-xs">{cawangan.userCount}</span>
+                    <div 
+                      className="flex items-center gap-1.5 font-medium cursor-pointer hover:text-blue-600 group"
+                      onClick={() => window.location.href = `/admin/users?cawanganId=${cawangan.id}`}
+                    >
+                      <Users className="w-3 h-3 text-blue-500/50 group-hover:text-blue-600" />
+                      <span className="text-xs group-hover:underline underline-offset-4">{cawangan.userCount}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
@@ -260,6 +272,25 @@ export default function ManageCawangan() {
                 )}
                 />
 
+                <form.Field
+                name="code"
+                children={(field) => (
+                    <div className="space-y-2">
+                    <Label htmlFor={field.name}>State Code (3 Letters)</Label>
+                    <Input
+                        id={field.name}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value.toUpperCase().slice(0, 4))}
+                        placeholder="e.g. SEL, KDH"
+                        className="font-mono uppercase"
+                    />
+                    </div>
+                )}
+                />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
                 <form.Field
                 name="location"
                 children={(field) => (
