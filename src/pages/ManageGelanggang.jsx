@@ -7,13 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import {
   Dialog,
@@ -32,10 +32,16 @@ export default function ManageGelanggang() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGelanggang, setEditingGelanggang] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
+  const [filterCawanganId, setFilterCawanganId] = useState('');
 
   const { data: gelanggangs, isLoading } = useQuery({
-    queryKey: ['gelanggangs'],
-    queryFn: () => fetchClient('/gelanggang'),
+    queryKey: ['gelanggangs', filterCawanganId],
+    queryFn: () => {
+      const url = filterCawanganId
+        ? `/gelanggang?cawanganId=${filterCawanganId}`
+        : '/gelanggang';
+      return fetchClient(url);
+    },
   });
 
   const { data: cawangans } = useQuery({
@@ -137,7 +143,7 @@ export default function ManageGelanggang() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Gelanggang Management</h1>
-          <p className="text-muted-foreground mt-1">Manage gelanggangs, assign them to branches, and set Jurulatih (Trainers).</p>
+          <p className="text-muted-foreground mt-1">Manage gelanggang, assign them to branches, and set Jurulatih (Trainers).</p>
         </div>
         <Button onClick={handleAdd} className="w-full md:w-auto">
           <Plus className="mr-2 h-4 w-4" /> Add Gelanggang
@@ -145,39 +151,54 @@ export default function ManageGelanggang() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-emerald-500" /> All Gelanggang
-          </CardTitle>
-          <CardDescription>
-            {gelanggangs?.length || 0} gelanggang currently active in the system.
-          </CardDescription>
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 space-y-0">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-emerald-500" /> All Gelanggang
+            </CardTitle>
+            <CardDescription>
+              {gelanggangs?.length || 0} gelanggang in the system.
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Label htmlFor="branch-filter" className="text-xs font-bold uppercase tracking-wider text-muted-foreground whitespace-nowrap">Filter by Branch:</Label>
+            <select
+              id="branch-filter"
+              value={filterCawanganId}
+              onChange={(e) => setFilterCawanganId(e.target.value)}
+              className="flex h-9 w-full sm:w-[200px] rounded-md border border-border bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">All Branches</option>
+              {cawangans?.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Gelanggang Name</TableHead>
-                <TableHead>Location</TableHead>
+                <TableHead className="w-[180px]">Gelanggang Name</TableHead>
+                <TableHead className="w-[200px]">Location</TableHead>
                 <TableHead>Branch (Cawangan)</TableHead>
                 <TableHead>Jurulatih</TableHead>
-                <TableHead>Assistants (Pembantu)</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {gelanggangs?.map((g) => (
                 <TableRow key={g.id}>
-                  <TableCell className="font-bold">
-                    <div className="flex flex-col">
-                        <span>{g.name}</span>
-                        <span className="text-[10px] text-muted-foreground line-clamp-1 max-w-[200px]">{g.description}</span>
+                  <TableCell className="font-semibold py-3">
+                    <div className="flex flex-col max-w-[180px]">
+                      <span className="text-sm truncate">{g.name}</span>
+                      <span className="text-[10px] text-muted-foreground truncate opacity-70">{g.description}</span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-start gap-1.5 text-muted-foreground">
+                    <div className="flex items-start gap-1.5 text-muted-foreground max-w-[200px]">
                       <MapPin className="w-3 h-3 mt-1 shrink-0" />
-                      <span className="text-xs">{g.location || 'No location set'}</span>
+                      <span className="text-xs line-clamp-2 leading-tight">{g.location || 'No location set'}</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -187,22 +208,16 @@ export default function ManageGelanggang() {
                     </div>
                   </TableCell>
                   <TableCell>
-                      {g.jurulatih ? (
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center">
-                                <UserRound className="w-3 h-3 text-blue-500" />
-                            </div>
-                            <span className="text-xs font-bold">{g.jurulatih.name}</span>
+                    {g.jurulatih ? (
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center">
+                          <UserRound className="w-3 h-3 text-blue-500" />
                         </div>
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground italic font-medium">Unassigned</span>
-                      )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1.5 font-medium">
-                      <Users className="w-3 h-3 text-blue-500/50" />
-                      <span className="text-xs">{g.pembantuCount || 0} Assistant(s)</span>
-                    </div>
+                        <span className="text-xs font-bold">{g.jurulatih.name}</span>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground italic font-medium">Unassigned</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -218,7 +233,7 @@ export default function ManageGelanggang() {
               ))}
               {!gelanggangs?.length && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
                     No gelanggang found.
                   </TableCell>
                 </TableRow>
@@ -323,12 +338,12 @@ export default function ManageGelanggang() {
               name="jurulatihId"
               children={(field) => (
                 <div>
-                  <UserLookup 
-                    label="Jurulatih (Trainer in Charge)" 
+                  <UserLookup
+                    label="Jurulatih (Trainer in Charge)"
                     placeholder="Search user to assign as Jurulatih..."
-                    value={field.state.value} 
+                    value={field.state.value}
                     initialData={editingGelanggang?.jurulatih ?? null}
-                    onChange={(val) => field.handleChange(val)} 
+                    onChange={(val) => field.handleChange(val)}
                   />
                 </div>
               )}

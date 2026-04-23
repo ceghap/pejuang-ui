@@ -37,13 +37,13 @@ export default function MyGelanggang() {
   return (
     <div className="h-full text-foreground p-4 md:p-8 pt-6 overflow-y-auto">
       <div className="max-w-6xl mx-auto space-y-8 pb-20">
-        
+
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-light tracking-tight">My <span className="font-semibold text-emerald-600">Gelanggang</span></h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Welcome back, {user?.name}. Here are your active training centers.
+              Welcome back, {user?.name}. Here are your active gelanggang.
             </p>
           </div>
         </div>
@@ -62,7 +62,7 @@ export default function MyGelanggang() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {gelanggangs.map((g) => {
               const isJurulatih = g.jurulatih?.id === user?.id;
-              
+
               return (
                 <Card key={g.id} className="relative overflow-hidden group border-border shadow-sm hover:shadow-md transition-shadow">
                   <div className="absolute top-0 w-full h-1.5 bg-emerald-500" />
@@ -103,10 +103,10 @@ export default function MyGelanggang() {
                     </div>
                   </CardContent>
                   <CardFooter className="pt-0 border-t bg-emerald-50/10 p-6">
-                    <Button 
-                      onClick={() => navigate(`/gelanggang/${g.id}`)} 
-                      className={isJurulatih 
-                        ? "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold" 
+                    <Button
+                      onClick={() => navigate(`/gelanggang/${g.id}`)}
+                      className={isJurulatih
+                        ? "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                         : "w-full bg-blue-600 hover:bg-blue-700 text-white font-bold"
                       }
                     >

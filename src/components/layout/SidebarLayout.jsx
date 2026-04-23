@@ -16,7 +16,7 @@ export default function SidebarLayout() {
 
   const userLinks = [
     { label: 'Profile', path: '/profile', icon: User },
-    { label: 'My Gelanggang', path: '/gelanggang', icon: Layers },
+    { label: 'Gelanggang', path: '/gelanggang', icon: Layers },
     { label: 'Shop', path: '/shop', icon: ShoppingBag },
     { label: 'My Bills & History', path: '/orders', icon: Receipt },
     { label: 'My Commissions', path: '/commissions', icon: DollarSign },
