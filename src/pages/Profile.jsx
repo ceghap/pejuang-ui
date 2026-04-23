@@ -103,6 +103,80 @@ export default function Profile() {
                   </div>
                 </div>
 
+                {user?.profile && (
+                  <>
+                    <div className="pt-8 border-t border-border/50">
+                      <p className="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-6">Personal Profile</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Title / Gelaran</p>
+                          <p className="text-sm font-medium">{user.profile.title || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Occupation</p>
+                          <p className="text-sm font-medium">{user.profile.occupation || '-'}</p>
+                        </div>
+                        <div className="md:col-span-2">
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Home Address</p>
+                          <p className="text-sm font-medium leading-relaxed">{user.profile.address || '-'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-8 border-t border-border/50">
+                      <p className="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-6">Silat Information</p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Position (Jawatan)</p>
+                          <p className="text-sm font-medium">{user.profile.position || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Belt Rank</p>
+                          <p className="text-sm font-medium">{user.profile.beltRank || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Baiah Year</p>
+                          <p className="text-sm font-medium">{user.profile.baiahYear || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Mandi Adat Year</p>
+                          <p className="text-sm font-medium">{user.profile.mandiAdatYear || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Mandi Pelangir Year</p>
+                          <p className="text-sm font-medium">{user.profile.mandiPelangirYear || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">ID Card Status</p>
+                          <p className="text-sm font-medium">{user.profile.membershipCardStatus || '-'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-8 border-t border-border/50">
+                      <p className="text-xs font-black text-rose-500 uppercase tracking-[0.2em] mb-6">Emergency Contact (Waris)</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Next of Kin Name</p>
+                          <p className="text-sm font-bold">{user.profile.nextOfKinName || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Relationship</p>
+                          <p className="text-sm font-medium">{user.profile.nextOfKinRelation || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">IC Number (Waris)</p>
+                          <p className="text-sm font-medium font-mono">{user.profile.nextOfKinIc || '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Phone Number (Waris)</p>
+                          <p className="text-sm font-bold font-mono text-rose-600">{user.profile.nextOfKinPhone || '-'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
                 {user?.upline && (
                   <div className="pt-6 border-t border-border/50">
                     <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-3 opacity-70">Introducer (Upline)</p>

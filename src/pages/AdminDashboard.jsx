@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from '@tanstack/react-form';
 import { UploadCloud, Users, Plus, Download, Search, ChevronLeft, Building2, ChevronRight, Loader2, AlertCircle, CheckCircle2, Pencil, Trash2, X, MoreHorizontal } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
   Table,
@@ -38,6 +40,7 @@ import { UserLookup } from '@/components/ui/user-lookup';
 import { toast } from 'sonner';
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
 
@@ -149,7 +152,6 @@ export default function AdminDashboard() {
       role: 3,
       uplineId: null,
       cawanganId: null,
-      isMandiAdat: false,
       programName: ''
     },
     onSubmit: async ({ value }) => {
@@ -332,10 +334,15 @@ export default function AdminDashboard() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {user.isMandiAdat ? (
-                            <span className="inline-flex items-center gap-1 text-blue-600 font-bold text-[10px] uppercase">
-                              <CheckCircle2 className="w-3 h-3" /> Done
-                            </span>
+                          {user.isMandiAdat || user.profile?.mandiAdatYear ? (
+                            <div className="flex flex-col">
+                              <span className="inline-flex items-center gap-1 text-blue-600 font-bold text-[10px] uppercase">
+                                <CheckCircle2 className="w-3 h-3" /> Done
+                              </span>
+                              {user.profile?.mandiAdatYear && (
+                                <span className="text-[9px] text-muted-foreground font-mono ml-4">{user.profile.mandiAdatYear}</span>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-[10px] font-bold text-muted-foreground/40 uppercase">Pending</span>
                           )}
@@ -360,10 +367,7 @@ export default function AdminDashboard() {
                               <DropdownMenuGroup>
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                 <DropdownMenuItem
-                                  onClick={() => {
-                                    setEditingUser(user);
-                                    setIsEditModalOpen(true);
-                                  }}
+                                  onClick={() => navigate(`/admin/users/${user.id}`)}
                                 >
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Edit User
@@ -591,25 +595,6 @@ export default function AdminDashboard() {
                 )}
               />
               <form.Field
-                name="isMandiAdat"
-                children={(field) => (
-                  <div className="flex items-center gap-3 col-span-2 p-3 bg-muted/30 rounded-lg border border-border">
-                    <input
-                      type="checkbox"
-                      id={field.name}
-                      checked={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.checked)}
-                      className="h-4 w-4 rounded border-border text-blue-600 focus:ring-blue-500"
-                    />
-                    <div className="space-y-0.5">
-                      <Label htmlFor={field.name} className="text-sm font-bold">Mandi Adat</Label>
-                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">Joined mandi adat.</p>
-                    </div>
-                  </div>
-                )}
-              />
-              <form.Field
                 name="role"
                 children={(field) => (
                   <div className="space-y-2 col-span-2">
@@ -785,7 +770,21 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
       role: user.role === 'SuperAdmin' ? 1 : user.role === 'Admin' ? 2 : 3,
       uplineId: user.uplineId || null,
       cawanganId: user.cawanganId || null,
-      isMandiAdat: user.isMandiAdat || false,
+      profile: {
+        title: user.profile?.title || '',
+        occupation: user.profile?.occupation || '',
+        address: user.profile?.address || '',
+        position: user.profile?.position || '',
+        beltRank: user.profile?.beltRank || '',
+        baiahYear: user.profile?.baiahYear || null,
+        mandiAdatYear: user.profile?.mandiAdatYear || null,
+        mandiPelangirYear: user.profile?.mandiPelangirYear || null,
+        membershipCardStatus: user.profile?.membershipCardStatus || '',
+        nextOfKinName: user.profile?.nextOfKinName || '',
+        nextOfKinIc: user.profile?.nextOfKinIc || '',
+        nextOfKinPhone: user.profile?.nextOfKinPhone || '',
+        nextOfKinRelation: user.profile?.nextOfKinRelation || '',
+      }
     },
     onSubmit: async ({ value }) => {
       onSave(value);
@@ -859,37 +858,35 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
         </DialogDescription>
       </DialogHeader>
 
-      <div className="flex gap-4 border-b border-border mt-2">
-        <button
-          className={`pb-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'details' ? 'border-blue-500 text-blue-500' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-          onClick={() => setActiveTab('details')}
-        >
-          Details
-        </button>
-        <button
-          className={`pb-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'downlines' ? 'border-blue-500 text-blue-500' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-          onClick={() => setActiveTab('downlines')}
-        >
-          Downlines
-        </button>
-        <button
-          className={`pb-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'memberships' ? 'border-blue-500 text-blue-500' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-          onClick={() => setActiveTab('memberships')}
-        >
-          Memberships
-        </button>
+      <div className="flex gap-4 border-b border-border mt-2 overflow-x-auto pb-1 no-scrollbar">
+        {[
+          { id: 'details', label: 'Core' },
+          { id: 'demographics', label: 'Profile' },
+          { id: 'silat', label: 'Silat' },
+          { id: 'emergency', label: 'Emergency' },
+          { id: 'downlines', label: 'Downlines' },
+          { id: 'memberships', label: 'Memberships' }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            className={`pb-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === tab.id ? 'border-blue-500 text-blue-500' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       <div className="pt-4">
-        {activeTab === 'details' ? (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              form.handleSubmit();
-            }}
-            className="space-y-4"
-          >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            form.handleSubmit();
+          }}
+          className="space-y-4"
+        >
+          {activeTab === 'details' && (
             <div className="grid grid-cols-2 gap-4">
               <form.Field
                 name="name"
@@ -984,24 +981,6 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
                 )}
               />
               <form.Field
-                name="isMandiAdat"
-                children={(field) => (
-                  <div className="flex items-center gap-3 col-span-2 p-3 bg-muted/30 rounded-lg border border-border">
-                    <input
-                      type="checkbox"
-                      id={`edit-${field.name}`}
-                      checked={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.checked)}
-                      className="h-4 w-4 rounded border-border text-blue-600 focus:ring-blue-500"
-                    />
-                    <div className="space-y-0.5">
-                      <Label htmlFor={`edit-${field.name}`} className="text-sm font-bold">Mandi Adat</Label>
-                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">Joined mandi adat</p>
-                    </div>
-                  </div>
-                )}
-              />
-              <form.Field
                 name="role"
                 children={(field) => (
                   <div className="space-y-2 col-span-2">
@@ -1020,121 +999,328 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
                 )}
               />
             </div>
+          )}
 
-            <div className="flex justify-end gap-3 mt-6">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <form.Subscribe
-                selector={(state) => [state.canSubmit, state.isSubmitting]}
-                children={([canSubmit, isSubmitting]) => (
-                  <Button
-                    type="submit"
-                    className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]"
-                    disabled={!canSubmit || isSubmitting || isSaving}
-                  >
-                    {(isSubmitting || isSaving) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    Save Changes
-                  </Button>
+          {activeTab === 'demographics' && (
+            <div className="grid grid-cols-2 gap-4">
+              <form.Field
+                name="profile.title"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={`edit-${field.name}`}>Title / Gelaran</Label>
+                    <Input
+                      id={`edit-${field.name}`}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="e.g. Dato', Hj"
+                      className="bg-background border-border"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="profile.occupation"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={`edit-${field.name}`}>Occupation</Label>
+                    <Input
+                      id={`edit-${field.name}`}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="e.g. Swasta, Kerajaan"
+                      className="bg-background border-border"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="profile.address"
+                children={(field) => (
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor={`edit-${field.name}`}>Home Address</Label>
+                    <Textarea
+                      id={`edit-${field.name}`}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      className="bg-background border-border"
+                      rows={3}
+                    />
+                  </div>
                 )}
               />
             </div>
-          </form>
-        ) : activeTab === 'downlines' ? (
-          <div className="space-y-4">
-            <div className="pb-4 border-b border-border">
-              <UserLookup
-                label="Add New Downline"
-                placeholder="Search user to add to team..."
-                value={null}
-                onChange={(val) => val && addDownlineMutation.mutate(val)}
+          )}
+
+          {activeTab === 'silat' && (
+            <div className="grid grid-cols-2 gap-4">
+              <form.Field
+                name="profile.position"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={`edit-${field.name}`}>Org. Position (Jawatan)</Label>
+                    <Input
+                      id={`edit-${field.name}`}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      className="bg-background border-border"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="profile.beltRank"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={`edit-${field.name}`}>Belt Rank (Tahap Bengkung)</Label>
+                    <Input
+                      id={`edit-${field.name}`}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      className="bg-background border-border"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="profile.baiahYear"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={`edit-${field.name}`}>Baiah Year</Label>
+                    <Input
+                      id={`edit-${field.name}`}
+                      type="number"
+                      value={field.state.value || ''}
+                      onChange={(e) => field.handleChange(e.target.value ? parseInt(e.target.value, 10) : null)}
+                      placeholder="YYYY"
+                      className="bg-background border-border"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="profile.mandiAdatYear"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={`edit-${field.name}`}>Mandi Adat Year</Label>
+                    <Input
+                      id={`edit-${field.name}`}
+                      type="number"
+                      value={field.state.value || ''}
+                      onChange={(e) => field.handleChange(e.target.value ? parseInt(e.target.value, 10) : null)}
+                      placeholder="YYYY"
+                      className="bg-background border-border"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="profile.mandiPelangirYear"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={`edit-${field.name}`}>Mandi Pelangir Year</Label>
+                    <Input
+                      id={`edit-${field.name}`}
+                      type="number"
+                      value={field.state.value || ''}
+                      onChange={(e) => field.handleChange(e.target.value ? parseInt(e.target.value, 10) : null)}
+                      placeholder="YYYY"
+                      className="bg-background border-border"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="profile.membershipCardStatus"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={`edit-${field.name}`}>ID Card Status</Label>
+                    <Input
+                      id={`edit-${field.name}`}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      className="bg-background border-border"
+                    />
+                  </div>
+                )}
               />
             </div>
+          )}
 
-            <div className="max-h-60 overflow-y-auto space-y-2 custom-scrollbar pr-1">
-              <Label>Current Team ({downlinesData?.count || 0})</Label>
-              {isLoadingDownlines ? (
-                <div className="py-8 text-center text-sm text-muted-foreground">Loading team...</div>
-              ) : downlinesData?.downlines?.length > 0 ? (
-                downlinesData.downlines.map(dl => (
-                  <div key={dl.id} className="flex items-center justify-between p-2 rounded-md border border-border bg-muted/20 group">
-                    <div>
-                      <p className="text-sm font-medium">{dl.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{dl.icNumber} | {dl.phoneNumber}</p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => removeDownlineMutation.mutate(dl.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+          {activeTab === 'emergency' && (
+            <div className="grid grid-cols-2 gap-4">
+              <form.Field
+                name="profile.nextOfKinName"
+                children={(field) => (
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor={`edit-${field.name}`}>Waris Name</Label>
+                    <Input
+                      id={`edit-${field.name}`}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      className="bg-background border-border"
+                    />
                   </div>
-                ))
-              ) : (
-                <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-md">
-                  No downlines assigned to this user.
-                </div>
-              )}
+                )}
+              />
+              <form.Field
+                name="profile.nextOfKinIc"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={`edit-${field.name}`}>Waris IC Number</Label>
+                    <Input
+                      id={`edit-${field.name}`}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      className="bg-background border-border"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="profile.nextOfKinPhone"
+                children={(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={`edit-${field.name}`}>Waris Phone Number</Label>
+                    <Input
+                      id={`edit-${field.name}`}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      className="bg-background border-border"
+                    />
+                  </div>
+                )}
+              />
+              <form.Field
+                name="profile.nextOfKinRelation"
+                children={(field) => (
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor={`edit-${field.name}`}>Relationship</Label>
+                    <Input
+                      id={`edit-${field.name}`}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="e.g. BAPA, ISTERI"
+                      className="bg-background border-border"
+                    />
+                  </div>
+                )}
+              />
             </div>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="p-4 bg-muted/30 border border-border rounded-lg space-y-4">
-              <p className="text-sm font-medium">Assign New Membership</p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Program Type</Label>
-                  <select
-                    id="program-type-select"
-                    className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val) assignMembershipMutation.mutate({ programType: val });
-                      e.target.value = "";
-                    }}
-                  >
-                    <option value="">Select Program...</option>
-                    {programs?.map(p => (
-                      <option key={p.id} value={p.name}>{p.name} ({p.prefix})</option>
-                    ))}
-                  </select>
+          )}
+
+          {activeTab === 'downlines' && (
+            <div className="space-y-4">
+              <div className="pb-4 border-b border-border">
+                <UserLookup
+                  label="Add New Downline"
+                  placeholder="Search user to add to team..."
+                  value={null}
+                  onChange={(val) => val && addDownlineMutation.mutate(val)}
+                />
+              </div>
+
+              <div className="max-h-60 overflow-y-auto space-y-2 custom-scrollbar pr-1">
+                <Label>Current Team ({downlinesData?.count || 0})</Label>
+                {isLoadingDownlines ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">Loading team...</div>
+                ) : downlinesData?.downlines?.length > 0 ? (
+                  downlinesData.downlines.map(dl => (
+                    <div key={dl.id} className="flex items-center justify-between p-2 rounded-md border border-border bg-muted/20 group">
+                      <div>
+                        <p className="text-sm font-medium">{dl.name}</p>
+                        <p className="text-[10px] text-muted-foreground">{dl.icNumber} | {dl.phoneNumber}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => removeDownlineMutation.mutate(dl.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-md">
+                    No downlines assigned to this user.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'memberships' && (
+            <div className="space-y-6">
+              <div className="p-4 bg-muted/30 border border-border rounded-lg space-y-4">
+                <p className="text-sm font-medium">Assign New Membership</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Program Type</Label>
+                    <select
+                      id="program-type-select"
+                      className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) assignMembershipMutation.mutate({ programType: val });
+                        e.target.value = "";
+                      }}
+                    >
+                      <option value="">Select Program...</option>
+                      {programs?.map(p => (
+                        <option key={p.id} value={p.name}>{p.name} ({p.prefix})</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground italic">
-                * Assigning a membership will automatically generate a unique sequential ID.
-              </p>
+
+              <div className="space-y-3">
+                <Label>Active Memberships ({membershipsData?.memberships?.length || 0})</Label>
+                {isLoadingMemberships ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">Loading memberships...</div>
+                ) : membershipsData?.memberships?.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-2">
+                    {membershipsData.memberships.map(m => (
+                      <div key={m.id} className="flex items-center justify-between p-3 rounded-md border border-rose-500/20 bg-rose-500/5 group">
+                        <div>
+                          <p className="text-[10px] font-bold text-rose-500 uppercase tracking-widest">{m.programType}</p>
+                          <p className="text-lg font-bold font-mono tracking-tight">{m.fullMemberId}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] text-muted-foreground">Assigned on</p>
+                          <p className="text-xs font-medium">{new Date(m.assignedAt).toLocaleDateString('en-GB')}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-md italic">
+                    No memberships assigned yet.
+                  </div>
+                )}
+              </div>
             </div>
+          )}
 
-            <div className="space-y-3">
-              <Label>Active Memberships ({membershipsData?.memberships?.length || 0})</Label>
-              {isLoadingMemberships ? (
-                <div className="py-8 text-center text-sm text-muted-foreground">Loading memberships...</div>
-              ) : membershipsData?.memberships?.length > 0 ? (
-                <div className="grid grid-cols-1 gap-2">
-                  {membershipsData.memberships.map(m => (
-                    <div key={m.id} className="flex items-center justify-between p-3 rounded-md border border-rose-500/20 bg-rose-500/5 group">
-                      <div>
-                        <p className="text-[10px] font-bold text-rose-500 uppercase tracking-widest">{m.programType}</p>
-                        <p className="text-lg font-bold font-mono tracking-tight">{m.fullMemberId}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] text-muted-foreground">Assigned on</p>
-                        <p className="text-xs font-medium">{new Date(m.assignedAt).toLocaleDateString('en-GB')}</p>
-
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-8 text-center text-sm text-muted-foreground border border-dashed border-border rounded-md italic">
-                  No memberships assigned yet.
-                </div>
+          <div className="flex justify-end gap-3 mt-6">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <form.Subscribe
+              selector={(state) => [state.canSubmit, state.isSubmitting]}
+              children={([canSubmit, isSubmitting]) => (
+                <Button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]"
+                  disabled={!canSubmit || isSubmitting || isSaving}
+                >
+                  {(isSubmitting || isSaving) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Save Changes
+                </Button>
               )}
-            </div>
+            />
           </div>
-        )}
+        </form>
       </div>
     </>
   );

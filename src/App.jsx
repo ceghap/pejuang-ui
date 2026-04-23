@@ -4,6 +4,7 @@ import { useAuthStore } from './store/authStore';
 import Login from './pages/Login';
 import ChangePassword from './pages/ChangePassword';
 import AdminDashboard from './pages/AdminDashboard';
+import UserDetail from './pages/UserDetail';
 import Hierarchy from './pages/Hierarchy';
 import MembershipPrograms from './pages/MembershipPrograms';
 import MembershipProgramDetails from './pages/MembershipProgramDetails';
@@ -114,6 +115,7 @@ const router = createBrowserRouter([
         element: <SidebarLayout />,
         children: [
           { path: '/admin/users', element: <AdminDashboard /> },
+          { path: '/admin/users/:id', element: <UserDetail /> },
           { path: '/admin/hierarchy', element: <Hierarchy /> },
           { path: '/admin/commissions', element: <Commissions /> },
           { path: '/admin/memberships', element: <MembershipPrograms /> },
