@@ -67,13 +67,13 @@ export default function UserDetail() {
 
   const saveAllMutation = useMutation({
     mutationFn: async (formData) => {
-      // 1. Update Profile & Upline
+      // 1. Update Profile & Upline FIRST
       await fetchClient(`/users/${id}`, {
         method: 'PUT',
         body: JSON.stringify({ ...formData, uplineId: stagedUpline?.id || null })
       });
 
-      // 2. Process Added Downlines
+      // 2. Process Added Downlines ONE BY ONE
       for (const d of addedDownlines) {
         await fetchClient(`/users/${d.id}/upline`, {
           method: 'PUT',
@@ -81,7 +81,7 @@ export default function UserDetail() {
         });
       }
 
-      // 3. Process Removed Downlines
+      // 3. Process Removed Downlines ONE BY ONE
       for (const rid of removedDownlineIds) {
         await fetchClient(`/users/${rid}/upline`, {
           method: 'PUT',
