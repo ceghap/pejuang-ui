@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export default function UserDetail() {
   const { id } = useParams();
@@ -369,8 +370,17 @@ export default function UserDetail() {
             )} />
             <form.Field name="profile.membershipCardStatus" children={(field) => (
               <div className="space-y-1 pt-2">
-                <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Card Status</Label>
-                <Input {...field.state} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} className="bg-slate-50" />
+                <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Status Kad Ahli</Label>
+                <Select value={field.state.value || 'none'} onValueChange={(val) => field.handleChange(val)}>
+                  <SelectTrigger className="bg-slate-50 border-slate-200">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Tiada (None)</SelectItem>
+                    <SelectItem value="pending">Dalam Proses (Pending)</SelectItem>
+                    <SelectItem value="delivered">Telah Diterima (Delivered)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )} />
           </CardContent>
