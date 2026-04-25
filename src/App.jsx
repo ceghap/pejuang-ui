@@ -24,6 +24,9 @@ import OrderDetails from './pages/OrderDetails';
 import MyGelanggang from './pages/MyGelanggang';
 import GelanggangDetail from './pages/GelanggangDetail';
 import ManageGelanggang from './pages/ManageGelanggang';
+import BengkungManagement from './pages/BengkungManagement';
+import UjianEvents from './pages/UjianEvents';
+import JuryMarking from './pages/JuryMarking';
 import ErrorPage from './pages/ErrorPage';
 import SidebarLayout from './components/layout/SidebarLayout';
 import { Toaster } from './components/ui/sonner';
@@ -127,6 +130,9 @@ const router = createBrowserRouter([
           { path: '/admin/cawangan', element: <ManageCawangan /> },
           { path: '/admin/positions', element: <Positions /> },
           { path: '/admin/gelanggang', element: <ManageGelanggang /> },
+          { path: '/admin/bengkung', element: <BengkungManagement /> },
+          { path: '/admin/ujian-events', element: <UjianEvents /> },
+          { path: '/ujian-events/:eventId/markings', element: <JuryMarking /> },
           { path: '/admin/finance', element: <FinancialDashboard /> },
           { path: '/admin/tiers', element: <TierConfigs /> }
         ]

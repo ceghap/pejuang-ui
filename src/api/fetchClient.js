@@ -25,6 +25,15 @@ export async function fetchClient(endpoint, options = {}) {
     headers,
   });
 
+  // Handle Session Invalidation (401 Unauthorized)
+  if (response.status === 401) {
+    const { logout } = useAuthStore.getState();
+    logout();
+    // Use window.location to ensure a hard redirect to login and clear any state
+    window.location.href = '/login';
+    throw new Error('SESSION_EXPIRED');
+  }
+
   // If we receive a 403 Forbidden, IdentityService sends a specific reason
   if (response.status === 403) {
     const data = await response.json().catch(() => null);
@@ -61,6 +70,13 @@ export async function downloadFile(endpoint, filename) {
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     headers,
   });
+
+  if (response.status === 401) {
+    const { logout } = useAuthStore.getState();
+    logout();
+    window.location.href = '/login';
+    throw new Error('SESSION_EXPIRED');
+  }
 
   if (!response.ok) {
     throw new Error(`Download Failed: ${response.status}`);
