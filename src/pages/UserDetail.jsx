@@ -458,10 +458,10 @@ export default function UserDetail() {
         <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col">
           <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-blue-600 flex items-center gap-2">
-              <Users className="w-3 h-3" /> Hierarchy (Pewarisan)
+              <Users className="w-3 h-3" /> Network
             </CardTitle>
             <Button onClick={() => setIsLinkDownlineOpen(true)} variant="outline" size="sm" className="h-7 text-[10px] font-black tracking-widest bg-slate-50 border-slate-200 text-slate-600 px-3">
-              <LinkIcon className="w-3 h-3 mr-1" /> LINK ANAK MURID
+              <LinkIcon className="w-3 h-3 mr-1" /> LINK DOWNLINE
             </Button>
           </CardHeader>
           <CardContent className="p-5 space-y-6 flex-1">
