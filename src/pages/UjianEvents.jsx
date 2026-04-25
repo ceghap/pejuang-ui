@@ -7,13 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import {
   Dialog,
@@ -131,12 +131,12 @@ export default function UjianEvents() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={event.status === 'Scheduled' ? 'secondary' : 'default'} 
-                           className={cn(
-                             "text-[10px] uppercase",
-                             event.status === 'Scheduled' && "bg-blue-50 text-blue-700 border-blue-100",
-                             event.status === 'Completed' && "bg-emerald-50 text-emerald-700 border-emerald-100"
-                           )}>
+                    <Badge variant={event.status === 'Scheduled' ? 'secondary' : 'default'}
+                      className={cn(
+                        "text-[10px] uppercase",
+                        event.status === 'Scheduled' && "bg-blue-50 text-blue-700 border-blue-100",
+                        event.status === 'Completed' && "bg-emerald-50 text-emerald-700 border-emerald-100"
+                      )}>
                       {event.status}
                     </Badge>
                   </TableCell>
@@ -190,7 +190,7 @@ export default function UjianEvents() {
             )} />
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={createMutation.isPending} className="bg-red-700">Schedule Event</Button>
+              <Button type="submit" disabled={createMutation.isPending} className="bg-red-700">Schedule Ujian</Button>
             </div>
           </form>
         </DialogContent>
