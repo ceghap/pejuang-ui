@@ -28,7 +28,7 @@ export default function SidebarLayout() {
     { label: 'Cawangan Management', path: '/admin/cawangan', icon: Building2 },
     { label: 'Position Management', path: '/admin/positions', icon: Briefcase },
     { label: 'Gelanggang Management', path: '/admin/gelanggang', icon: Layers },
-    { label: 'Bengkung & Syllabus', path: '/admin/bengkung', icon: Award },
+    { label: 'Bengkung & Silibus', path: '/admin/bengkung', icon: Award },
     { label: 'Ujian Events', path: '/admin/ujian-events', icon: ClipboardCheck },
     { label: 'Membership Programs', path: '/admin/memberships', icon: IdCard },
   ];
