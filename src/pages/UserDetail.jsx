@@ -62,7 +62,7 @@ export default function UserDetail() {
   // Initialize staging when data loads
   useEffect(() => {
     if (user) setStagedUpline(user.upline);
-    if (initialDownlines) setStagedDownlines(initialDownlines);
+    if (initialDownlines?.downlines) setStagedDownlines(initialDownlines.downlines);
   }, [user, initialDownlines]);
 
   const saveAllMutation = useMutation({
@@ -93,10 +93,14 @@ export default function UserDetail() {
       toast.success("All changes saved successfully");
       setAddedDownlines([]);
       setRemovedDownlineIds(new Set());
+      form.reset(); // Clear dirty state
       queryClient.invalidateQueries({ queryKey: ['user', id] });
       queryClient.invalidateQueries({ queryKey: ['user-downlines', id] });
     },
-    onError: (err) => toast.error(err.message || "Failed to save changes")
+    onError: (err) => {
+      console.error("Save Error:", err);
+      toast.error(err.message || "Failed to save changes");
+    }
   });
 
   const assignMembershipMutation = useMutation({
@@ -454,17 +458,17 @@ export default function UserDetail() {
         <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col">
           <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-blue-600 flex items-center gap-2">
-              <Users className="w-3 h-3" /> Hierarchy
+              <Users className="w-3 h-3" /> Hierarchy (Pewarisan)
             </CardTitle>
             <Button onClick={() => setIsLinkDownlineOpen(true)} variant="outline" size="sm" className="h-7 text-[10px] font-black tracking-widest bg-slate-50 border-slate-200 text-slate-600 px-3">
-              <LinkIcon className="w-3 h-3 mr-1" /> LINK DOWNLINE
+              <LinkIcon className="w-3 h-3 mr-1" /> LINK ANAK MURID
             </Button>
           </CardHeader>
           <CardContent className="p-5 space-y-6 flex-1">
             {/* Upline Section */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-[10px] uppercase font-black tracking-widest text-slate-400">Introducer (Upline)</Label>
+                <Label className="text-[10px] uppercase font-black tracking-widest text-slate-400">Introducer</Label>
                 <Button onClick={() => setIsChangeUplineOpen(true)} variant="ghost" className="h-6 px-2 text-[10px] font-black text-blue-600 hover:bg-blue-50">
                   <LinkIcon className="w-3 h-3 mr-1" /> LINK INTRODUCER
                 </Button>
@@ -480,7 +484,7 @@ export default function UserDetail() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-xs uppercase truncate text-slate-800">{stagedUpline.name}</p>
-                    <p className="text-[10px] font-mono text-slate-400">Direct Upline</p>
+                    <p className="text-[10px] font-mono text-slate-400 text-blue-600 font-bold">Introducer</p>
                   </div>
                   {stagedUpline.id !== user?.upline?.id && <Badge variant="outline" className="text-[8px] bg-white text-orange-600 border-orange-200">PENDING</Badge>}
                 </div>
@@ -494,7 +498,7 @@ export default function UserDetail() {
             {/* Downlines Section */}
             <div className="space-y-3 pt-2">
               <div className="flex items-center justify-between">
-                <Label className="text-[10px] uppercase font-black tracking-widest text-slate-400">Direct Downlines</Label>
+                <Label className="text-[10px] uppercase font-black tracking-widest text-slate-400">Anak Murid (Direct Downlines)</Label>
                 <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{stagedDownlines.length}</span>
               </div>
               <div className="space-y-1 max-h-64 overflow-y-auto pr-1">
@@ -528,20 +532,21 @@ export default function UserDetail() {
             </div>
           </CardContent>
         </Card>
-
       </div>
 
+      {/* DIALOG: LINK INTRODUCER (LOCAL STAGE) */}
       <Dialog open={isChangeUplineOpen} onOpenChange={setIsChangeUplineOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="uppercase font-black tracking-widest flex items-center gap-2">
-              <LinkIcon className="w-5 h-5 text-blue-600" /> Link Introducer (Upline)
+              <LinkIcon className="w-5 h-5 text-blue-600" /> Link Introducer
             </DialogTitle>
-            <DialogDescription>Search for an existing user to set as the Upline.</DialogDescription>
+            <DialogDescription>Search for an existing user to set as the introducer.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-6">
-            <UserLookup
-              label="Search User"
+
+            label="Search User"            <UserLookup
+              excludeId={id}
               onChange={(uid, userData) => {
                 if (userData) {
                   setStagedUpline(userData);
@@ -558,18 +563,19 @@ export default function UserDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* DIALOG: LINK DOWNLINE (LOCAL STAGE) */}
+      {/* DIALOG: LINK ANAK MURID (LOCAL STAGE) */}
       <Dialog open={isLinkDownlineOpen} onOpenChange={setIsLinkDownlineOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="uppercase font-black tracking-widest flex items-center gap-2">
-              <LinkIcon className="w-5 h-5 text-slate-600" /> Link Downline
+              <LinkIcon className="w-5 h-5 text-slate-600" /> Link Anak Murid (Downline)
             </DialogTitle>
             <DialogDescription>Search for an existing user to move into this hierarchy.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-6">
             <UserLookup
               label="Search User"
+              excludeId={id}
               onChange={(uid, userData) => handleLinkDownline(userData)}
               placeholder="Search by Name, IC or Phone..."
               className="bg-slate-50"
@@ -580,7 +586,6 @@ export default function UserDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* DIALOG: ASSIGN MEMBERSHIP (IMMEDIATE) */}
       <Dialog open={isAddMembershipOpen} onOpenChange={setIsAddMembershipOpen}>
         <DialogContent>

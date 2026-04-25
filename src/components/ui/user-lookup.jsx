@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { fetchClient } from '@/api/fetchClient';
 
-export function UserLookup({ label, value, onChange, initialData = null, placeholder = "Search by Name, IC or Phone..." }) {
+export function UserLookup({ label, value, onChange, initialData = null, placeholder = "Search by Name, IC or Phone...", excludeId = null }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [isOpen, setIsOpen] = useState(false);
@@ -25,7 +25,13 @@ export function UserLookup({ label, value, onChange, initialData = null, placeho
 
   const { data: results, isLoading } = useQuery({
     queryKey: ['user-lookup', debouncedSearch],
-    queryFn: () => fetchClient(`/users/search?q=${encodeURIComponent(debouncedSearch)}`),
+    queryFn: async () => {
+      const data = await fetchClient(`/users/search?q=${encodeURIComponent(debouncedSearch)}`);
+      if (excludeId && Array.isArray(data)) {
+        return data.filter(u => u.id !== excludeId);
+      }
+      return data;
+    },
     enabled: debouncedSearch.length >= 3,
   });
 
@@ -43,14 +49,14 @@ export function UserLookup({ label, value, onChange, initialData = null, placeho
 
   const handleSelect = (user) => {
     setSelectedUser(user);
-    onChange(user.id);
+    onChange(user.id, user);
     setIsOpen(false);
     setSearchTerm('');
   };
 
   const handleClear = () => {
     setSelectedUser(null);
-    onChange(null);
+    onChange(null, null);
   };
 
   return (
