@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchClient } from '@/api/fetchClient';
 import { useForm } from '@tanstack/react-form';
+import { useAuthStore } from '@/store/authStore';
 import {
   ArrowLeft, Save, User as UserIcon, Shield, Sword,
   Users, CreditCard, Heart, Loader2, Plus, Link as LinkIcon,
@@ -26,6 +27,7 @@ export default function UserDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user: authUser } = useAuthStore();
 
   // Dialog States
   const [isAddMembershipOpen, setIsAddMembershipOpen] = useState(false);
@@ -62,6 +64,11 @@ export default function UserDetail() {
   const { data: positions } = useQuery({
     queryKey: ['positions'],
     queryFn: () => fetchClient('/positions')
+  });
+
+  const { data: bengkungs } = useQuery({
+    queryKey: ['bengkungs'],
+    queryFn: () => fetchClient('/bengkung')
   });
 
   // Initialize staging when data loads
@@ -130,6 +137,7 @@ export default function UserDetail() {
       role: user?.role === 'SuperAdmin' ? 1 : user?.role === 'Admin' ? 2 : 3,
       cawanganId: user?.cawanganId || null,
       positionId: user?.positionId || null,
+      currentBengkungId: user?.currentBengkungId || null,
       profile: {
         title: user?.profile?.title || '',
         occupation: user?.profile?.occupation || '',
@@ -162,6 +170,7 @@ export default function UserDetail() {
         role: user.role === 'SuperAdmin' ? 1 : user.role === 'Admin' ? 2 : 3,
         cawanganId: user.cawanganId || null,
         positionId: user.positionId || null,
+        currentBengkungId: user.currentBengkungId || null,
         profile: {
           title: user.profile?.title || '',
           occupation: user.profile?.occupation || '',
@@ -381,12 +390,35 @@ export default function UserDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-4 flex-1">
-            <form.Field name="profile.bengkung" children={(field) => (
-              <div className="space-y-1">
-                <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Peringkat Bengkung</Label>
-                <Input {...field.state} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} className="bg-slate-50 border-slate-200 font-bold" />
-              </div>
-            )} />
+            <form.Field name="currentBengkungId" children={(field) => {
+              const isSuperAdmin = authUser?.role === 'SuperAdmin';
+              return (
+                <div className="space-y-1">
+                  <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Peringkat Bengkung (Belt Rank)</Label>
+                  <Select 
+                    disabled={!isSuperAdmin} 
+                    value={field.state.value || 'none'} 
+                    onValueChange={(val) => field.handleChange(val === 'none' ? null : val)}
+                  >
+                    <SelectTrigger className={cn(
+                        "bg-slate-50 border-slate-200 font-bold",
+                        !isSuperAdmin && "opacity-70 cursor-not-allowed border-transparent shadow-none"
+                    )}>
+                      <SelectValue placeholder="Tiada (Kosong)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Tiada (Kosong)</SelectItem>
+                      {bengkungs?.map(b => (
+                        <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {!isSuperAdmin && (
+                    <p className="text-[9px] text-slate-400 italic">Determined by official Ujian results.</p>
+                  )}
+                </div>
+              );
+            }} />
             <form.Field name="profile.baiahYear" children={(field) => (
               <div className="space-y-1">
                 <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Tahun Baiah</Label>
