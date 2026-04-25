@@ -93,7 +93,7 @@ export default function JuryMarking() {
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => navigate('/ujian-events')} className="pl-0">
+        <Button variant="ghost" onClick={() => navigate('/admin/ujian-events')} className="pl-0">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Events
         </Button>
       </div>

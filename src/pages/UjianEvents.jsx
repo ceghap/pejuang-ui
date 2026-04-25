@@ -25,6 +25,7 @@ import {
 import { fetchClient } from '@/api/fetchClient';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';

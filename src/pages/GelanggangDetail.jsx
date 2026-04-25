@@ -82,6 +82,37 @@ export default function GelanggangDetail() {
     onError: (err) => toast.error(err.message)
   });
 
+  const addUserMutation = useMutation({
+    mutationFn: (userId) => fetchClient(`/gelanggang/${id}/users`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['gelanggang', id]);
+      setIsAddUserOpen(false);
+      setSelectedNewUser(null);
+      toast.success('User added successfully');
+    },
+    onError: (err) => {
+      toast.error(err.message || 'Failed to add user');
+    }
+  });
+
+  const removeUserMutation = useMutation({
+    mutationFn: (userId) => fetchClient(`/gelanggang/${id}/users/${userId}`, {
+      method: 'DELETE',
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['gelanggang', id]);
+      setUserToRemove(null);
+      toast.success('User removed from gelanggang');
+    },
+    onError: (err) => {
+      toast.error(err.message || 'Failed to remove user');
+      setUserToRemove(null);
+    }
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-4">
