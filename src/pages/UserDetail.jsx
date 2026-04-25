@@ -59,6 +59,11 @@ export default function UserDetail() {
     queryFn: () => fetchClient('/memberships/programs')
   });
 
+  const { data: positions } = useQuery({
+    queryKey: ['positions'],
+    queryFn: () => fetchClient('/positions')
+  });
+
   // Initialize staging when data loads
   useEffect(() => {
     if (user) setStagedUpline(user.upline);
@@ -124,6 +129,7 @@ export default function UserDetail() {
       email: user?.email || '',
       role: user?.role === 'SuperAdmin' ? 1 : user?.role === 'Admin' ? 2 : 3,
       cawanganId: user?.cawanganId || null,
+      positionId: user?.positionId || null,
       profile: {
         title: user?.profile?.title || '',
         occupation: user?.profile?.occupation || '',
@@ -155,6 +161,7 @@ export default function UserDetail() {
         email: user.email || '',
         role: user.role === 'SuperAdmin' ? 1 : user.role === 'Admin' ? 2 : 3,
         cawanganId: user.cawanganId || null,
+        positionId: user.positionId || null,
         profile: {
           title: user.profile?.title || '',
           occupation: user.profile?.occupation || '',
@@ -304,13 +311,39 @@ export default function UserDetail() {
                   <Input {...field.state} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} className="bg-slate-50 border-slate-200" />
                 </div>
               )} />
-              <form.Field name="profile.position" children={(field) => (
+              <form.Field name="positionId" children={(field) => (
                 <div className="space-y-1">
-                  <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Position</Label>
-                  <Input {...field.state} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} className="bg-slate-50 border-slate-200 font-bold" />
+                  <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Position (Jawatan)</Label>
+                  <Select value={field.state.value || 'none'} onValueChange={(val) => field.handleChange(val === 'none' ? null : val)}>
+                    <SelectTrigger className="bg-slate-50 border-slate-200 font-bold h-10">
+                        <SelectValue placeholder="No Specific Position" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="none">No Specific Position</SelectItem>
+                        {positions?.filter(p => {
+                            if (!p.isActive) return false;
+                            const userCawanganId = form.getFieldValue('cawanganId');
+                            if (!userCawanganId) {
+                                // HQ user
+                                return p.level === 1 || p.level === 3;
+                            } else {
+                                // Branch user
+                                return p.level === 2 || p.level === 3;
+                            }
+                        }).map(p => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )} />
             </div>
+            <form.Field name="profile.position" children={(field) => (
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Other / Custom Title</Label>
+                <Input {...field.state} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} className="bg-slate-50 border-slate-200" placeholder="e.g. Guru Utama" />
+              </div>
+            )} />
             <form.Field name="profile.occupation" children={(field) => (
               <div className="space-y-1">
                 <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Occupation</Label>

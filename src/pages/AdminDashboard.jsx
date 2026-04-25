@@ -49,6 +49,7 @@ export default function AdminDashboard() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [cawanganFilter, setCawanganFilter] = useState('all');
   const [mandiAdatFilter, setMandiAdatFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
 
   const [editingUser, setEditingUser] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -83,15 +84,16 @@ export default function AdminDashboard() {
       setPage(1); // Reset page on search
     }, 500);
     return () => clearTimeout(timer);
-  }, [search, cawanganFilter, mandiAdatFilter]);
+  }, [search, cawanganFilter, mandiAdatFilter, roleFilter]);
 
   const { data: usersData, isLoading: isLoadingUsers } = useQuery({
-    queryKey: ['users', page, debouncedSearch, cawanganFilter, mandiAdatFilter],
+    queryKey: ['users', page, debouncedSearch, cawanganFilter, mandiAdatFilter, roleFilter],
     queryFn: () => {
       let url = `/users?page=${page}&limit=10`;
       if (debouncedSearch) url += `&search=${encodeURIComponent(debouncedSearch)}`;
       if (cawanganFilter !== 'all') url += `&cawanganId=${cawanganFilter}`;
       if (mandiAdatFilter !== 'all') url += `&isMandiAdat=${mandiAdatFilter === 'yes'}`;
+      if (roleFilter !== 'all') url += `&role=${roleFilter}`;
       return fetchClient(url);
     }
   });
@@ -99,6 +101,11 @@ export default function AdminDashboard() {
   const { data: cawangans } = useQuery({
     queryKey: ['cawangans'],
     queryFn: () => fetchClient('/cawangan'),
+  });
+
+  const { data: positions } = useQuery({
+    queryKey: ['positions'],
+    queryFn: () => fetchClient('/positions'),
   });
 
   const { data: programs } = useQuery({
@@ -172,6 +179,7 @@ export default function AdminDashboard() {
       role: 3,
       uplineId: null,
       cawanganId: null,
+      positionId: null,
       programName: ''
     },
     onSubmit: async ({ value }) => {
@@ -275,9 +283,9 @@ export default function AdminDashboard() {
               <CardTitle className="text-xl">User Directory</CardTitle>
               <CardDescription className="text-muted-foreground">Manage all registered prospects and admins.</CardDescription>
             </div>
-            <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
               <select
-                className="bg-background border border-border rounded-md text-[10px] font-bold uppercase h-10 px-2 outline-none w-full sm:w-auto"
+                className="bg-background border border-border rounded-md text-[10px] font-bold uppercase h-10 px-2 outline-none w-full sm:w-auto min-w-[120px]"
                 value={cawanganFilter}
                 onChange={(e) => setCawanganFilter(e.target.value)}
               >
@@ -288,7 +296,7 @@ export default function AdminDashboard() {
                 ))}
               </select>
               <select
-                className="bg-background border border-border rounded-md text-[10px] font-bold uppercase h-10 px-2 outline-none w-full sm:w-auto"
+                className="bg-background border border-border rounded-md text-[10px] font-bold uppercase h-10 px-2 outline-none w-full sm:w-auto min-w-[120px]"
                 value={mandiAdatFilter}
                 onChange={(e) => setMandiAdatFilter(e.target.value)}
               >
@@ -296,12 +304,22 @@ export default function AdminDashboard() {
                 <option value="yes">Mandi Adat: Yes</option>
                 <option value="no">Mandi Adat: No</option>
               </select>
+              <select
+                className="bg-background border border-border rounded-md text-[10px] font-bold uppercase h-10 px-2 outline-none w-full sm:w-auto min-w-[120px]"
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+              >
+                <option value="all">All Roles</option>
+                <option value="SuperAdmin">Super Admin</option>
+                <option value="Admin">Admin</option>
+                <option value="User">User</option>
+              </select>
 
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Search users..."
+                  placeholder="Name, Phone, ID, IC..."
                   className="pl-9 bg-background border-border w-full h-10"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -343,14 +361,24 @@ export default function AdminDashboard() {
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">
                           <div className="flex flex-col">
-                            <span>{user.name}</span>
+                            <span className="text-sm">{user.name}</span>
                             <span className="text-[10px] text-muted-foreground font-mono">{user.icNumber}</span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col">
-                            <span className="text-xs">{user.phoneNumber}</span>
-                            <span className="text-[9px] text-muted-foreground truncate max-w-[120px]">{user.email || '-'}</span>
+                            <span className="text-xs font-semibold">{user.phoneNumber}</span>
+                            {user.membershipIds?.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 mt-0.5">
+                                {user.membershipIds.map(mid => (
+                                  <span key={mid} className="text-[9px] bg-blue-50 text-blue-700 px-1 rounded font-mono border border-blue-100 uppercase">
+                                    {mid}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-[9px] text-muted-foreground truncate max-w-[120px]">{user.email || '-'}</span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -387,35 +415,24 @@ export default function AdminDashboard() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuGroup>
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem
-                                  onClick={() => navigate(`/admin/users/${user.id}`)}
-                                >
-                                  <Pencil className="mr-2 h-4 w-4" />
-                                  Edit User
-                                </DropdownMenuItem>
-                              </DropdownMenuGroup>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuGroup>
-                                <DropdownMenuItem
-                                  className="text-rose-600 focus:text-rose-600 focus:bg-rose-50"
-                                  onClick={() => setDeletingUser(user)}
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete User
-                                </DropdownMenuItem>
-                              </DropdownMenuGroup>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <div className="flex justify-end items-center gap-1">
+                             <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={() => navigate(`/admin/users/${user.id}`)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                              onClick={() => setDeletingUser(user)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -599,6 +616,56 @@ export default function AdminDashboard() {
                       <option value="">Select Cawangan...</option>
                       {cawangans?.map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              />
+              <form.Field
+                name="positionId"
+                children={(field) => (
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor={field.name}>Position (Jawatan)</Label>
+                    <select
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value || ''}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value || null)}
+                      className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
+                    >
+                      <option value="">No Specific Position</option>
+                      {positions?.filter(p => {
+                          if (!p.isActive) return false;
+                          const cId = form.getFieldValue('cawanganId');
+                          return !cId ? (p.level === 1 || p.level === 3) : (p.level === 2 || p.level === 3);
+                      }).map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              />
+              <form.Field
+                name="positionId"
+                children={(field) => (
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor={field.name}>Position (Jawatan)</Label>
+                    <select
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value || ''}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value || null)}
+                      className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
+                    >
+                      <option value="">No Specific Position</option>
+                      {positions?.filter(p => {
+                          if (!p.isActive) return false;
+                          const cId = form.getFieldValue('cawanganId');
+                          return !cId ? (p.level === 1 || p.level === 3) : (p.level === 2 || p.level === 3);
+                      }).map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
                       ))}
                     </select>
                   </div>
@@ -875,6 +942,7 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
       role: user.role === 'SuperAdmin' ? 1 : user.role === 'Admin' ? 2 : 3,
       uplineId: user.uplineId || null,
       cawanganId: user.cawanganId || null,
+      positionId: user.positionId || null,
       profile: {
         title: user.profile?.title || '',
         occupation: user.profile?.occupation || '',
@@ -899,6 +967,11 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
   const { data: cawangans } = useQuery({
     queryKey: ['cawangans'],
     queryFn: () => fetchClient('/cawangan'),
+  });
+
+  const { data: positions } = useQuery({
+    queryKey: ['positions'],
+    queryFn: () => fetchClient('/positions'),
   });
 
   const { data: downlinesData, isLoading: isLoadingDownlines } = useQuery({
@@ -1081,6 +1154,25 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
                       <option value="">Select Cawangan...</option>
                       {cawangans?.map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              />
+              <form.Field
+                name="positionId"
+                children={(field) => (
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor={`edit-${field.name}`}>Position (Jawatan)</Label>
+                    <select
+                      id={`edit-${field.name}`}
+                      value={field.state.value || ''}
+                      onChange={(e) => field.handleChange(e.target.value || null)}
+                      className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
+                    >
+                      <option value="">No Specific Position</option>
+                      {positions?.filter(p => p.isActive).map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
                       ))}
                     </select>
                   </div>

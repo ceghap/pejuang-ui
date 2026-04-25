@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { Network, ShieldCheck, LayoutDashboard, TrendingUp, Building2, User, LogOut, ShoppingBag, Receipt, IdCard, Menu, X, Layers, DollarSign, Calendar } from 'lucide-react';
+import { Network, ShieldCheck, LayoutDashboard, TrendingUp, Building2, Briefcase, User, LogOut, ShoppingBag, Receipt, IdCard, Menu, X, Layers, DollarSign, Calendar } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,7 @@ export default function SidebarLayout() {
     { label: 'User Management', path: '/admin/users', icon: LayoutDashboard },
     { label: 'Calendar (Takwim)', path: '/admin/calendar', icon: Calendar },
     { label: 'Cawangan Management', path: '/admin/cawangan', icon: Building2 },
+    { label: 'Position Management', path: '/admin/positions', icon: Briefcase },
     { label: 'Gelanggang Management', path: '/admin/gelanggang', icon: Layers },
     { label: 'Membership Programs', path: '/admin/memberships', icon: IdCard },
   ];
