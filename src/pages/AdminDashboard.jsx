@@ -575,6 +575,7 @@ export default function AdminDashboard() {
                 children={(field) => (
                   <div className="col-span-2">
                     <UserLookup
+                      key={isCreateUserModalOpen}
                       label="Introducer (Upline)"
                       value={field.state.value}
                       onChange={(val) => field.handleChange(val)}
@@ -1057,6 +1058,7 @@ function EditUserForm({ user, onClose, onSave, isSaving }) {
                 children={(field) => (
                   <div className="col-span-2">
                     <UserLookup
+                      key={user.id}
                       label="Introducer (Upline)"
                       value={field.state.value}
                       initialData={user.upline}

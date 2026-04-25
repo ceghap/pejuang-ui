@@ -339,6 +339,7 @@ export default function ManageGelanggang() {
               children={(field) => (
                 <div>
                   <UserLookup
+                    key={editingGelanggang?.id || 'new'}
                     label="Jurulatih (Trainer in Charge)"
                     placeholder="Search user to assign as Jurulatih..."
                     value={field.state.value}

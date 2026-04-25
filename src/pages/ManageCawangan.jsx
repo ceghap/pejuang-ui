@@ -347,6 +347,7 @@ export default function ManageCawangan() {
               children={(field) => (
                 <div className="col-span-2">
                   <UserLookup 
+                    key={editingCawangan?.id || 'new'}
                     label="Person In Charge (PIC)" 
                     placeholder="Search user to assign as PIC..."
                     value={field.state.value} 

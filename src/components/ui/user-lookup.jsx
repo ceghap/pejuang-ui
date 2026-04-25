@@ -13,10 +13,10 @@ export function UserLookup({ label, value, onChange, initialData = null, placeho
   const [selectedUser, setSelectedUser] = useState(initialData);
 
   useEffect(() => {
-    if (initialData && !selectedUser) {
+    if (initialData && !selectedUser && value) {
       setSelectedUser(initialData);
     }
-  }, [initialData]);
+  }, [initialData, value]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
@@ -42,10 +42,10 @@ export function UserLookup({ label, value, onChange, initialData = null, placeho
   });
 
   useEffect(() => {
-    if (initialUser && !selectedUser) {
+    if (initialUser && !selectedUser && value) {
       setSelectedUser(initialUser);
     }
-  }, [initialUser, selectedUser]);
+  }, [initialUser, selectedUser, value]);
 
   const handleSelect = (user) => {
     setSelectedUser(user);
