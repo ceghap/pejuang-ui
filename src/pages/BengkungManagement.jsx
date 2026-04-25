@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from '@tanstack/react-form';
-import { Award, Plus, Loader2, Trash2, Pencil, ListChecks, ChevronRight, Hash } from 'lucide-react';
+import { Award, Plus, Loader2, Trash2, Pencil, ListChecks, ChevronRight, Hash, GripVertical } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,16 +28,78 @@ import { fetchClient } from '@/api/fetchClient';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
+// DnD Kit Imports
+import {
+  DndContext, 
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+function SortableSilibusItem({ s, onEdit, onDelete }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: s.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 0,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style}
+      className={cn(
+        "group flex items-center justify-between px-3 py-1.5 rounded-md border bg-white hover:border-red-200 transition-colors shadow-sm mb-1",
+        isDragging && "border-red-500 shadow-lg z-50"
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 transition-colors p-1">
+          <GripVertical className="w-3.5 h-3.5" />
+        </div>
+        <span className="text-xs font-bold text-slate-700">{s.name}</span>
+      </div>
+      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onEdit(s)}>
+          <Pencil className="h-3 w-3" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => onDelete(s.id)}>
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function BengkungManagement() {
   const queryClient = useQueryClient();
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
   const [isBengkungDialogOpen, setIsBengkungDialogOpen] = useState(false);
   const [editingBengkung, setEditingBengkung] = useState(null);
   const [deleteBengkungId, setDeleteBengkungId] = useState(null);
 
-  const [isSyllabusDialogOpen, setIsSyllabusDialogOpen] = useState(false);
+  const [isSilibusDialogOpen, setIsSilibusDialogOpen] = useState(false);
   const [selectedBengkung, setSelectedBengkung] = useState(null);
-  const [editingSyllabus, setEditingSyllabus] = useState(null);
-  const [deleteSyllabusId, setDeleteSyllabusId] = useState(null);
+  const [editingSilibus, setEditingSilibus] = useState(null);
+  const [deleteSilibusId, setDeleteSilibusId] = useState(null);
 
   const { data: bengkungs, isLoading } = useQuery({
     queryKey: ['bengkungs'],
@@ -72,7 +134,7 @@ export default function BengkungManagement() {
     onError: (error) => toast.error(error.message)
   });
 
-  const syllabusMutation = useMutation({
+  const silibusMutation = useMutation({
     mutationFn: (data) => {
       const method = data.id ? 'PUT' : 'POST';
       const url = data.id ? `/syllabus/${data.id}` : `/bengkung/${data.bengkungId}/syllabus`;
@@ -83,19 +145,18 @@ export default function BengkungManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['bengkungs']);
-      setIsSyllabusDialogOpen(false);
-      setEditingSyllabus(null);
-      toast.success('Syllabus item saved');
+      setIsSilibusDialogOpen(false);
+      setEditingSilibus(null);
     },
     onError: (error) => toast.error(error.message)
   });
 
-  const deleteSyllabusMutation = useMutation({
+  const deleteSilibusMutation = useMutation({
     mutationFn: (id) => fetchClient(`/syllabus/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries(['bengkungs']);
-      setDeleteSyllabusId(null);
-      toast.success('Syllabus item deleted');
+      setDeleteSilibusId(null);
+      toast.success('Silibus item deleted');
     },
     onError: (error) => toast.error(error.message)
   });
@@ -107,13 +168,22 @@ export default function BengkungManagement() {
     },
   });
 
-  const syllabusForm = useForm({
-    defaultValues: { name: '', orderNo: 1 },
+  const silibusForm = useForm({
+    defaultValues: { name: '' },
     onSubmit: async ({ value }) => {
-      syllabusMutation.mutate(editingSyllabus 
-        ? { ...value, id: editingSyllabus.id } 
-        : { ...value, bengkungId: selectedBengkung.id }
+      let finalOrderNo = editingSilibus?.orderNo || 1;
+      
+      if (!editingSilibus) {
+        const currentSilibus = selectedBengkung.syllabus || [];
+        const maxOrder = currentSilibus.reduce((max, item) => Math.max(max, item.orderNo), 0);
+        finalOrderNo = maxOrder + 1;
+      }
+
+      silibusMutation.mutate(editingSilibus 
+        ? { ...value, id: editingSilibus.id, orderNo: finalOrderNo } 
+        : { ...value, bengkungId: selectedBengkung.id, orderNo: finalOrderNo }
       );
+      toast.success('Silibus saved');
     },
   });
 
@@ -125,19 +195,41 @@ export default function BengkungManagement() {
     setIsBengkungDialogOpen(true);
   };
 
-  const handleAddSyllabus = (b) => {
+  const handleAddSilibus = (b) => {
     setSelectedBengkung(b);
-    setEditingSyllabus(null);
-    syllabusForm.reset();
-    setIsSyllabusDialogOpen(true);
+    setEditingSilibus(null);
+    silibusForm.reset();
+    setIsSilibusDialogOpen(true);
   };
 
-  const handleEditSyllabus = (b, s) => {
+  const handleEditSilibus = (b, s) => {
     setSelectedBengkung(b);
-    setEditingSyllabus(s);
-    syllabusForm.setFieldValue('name', s.name);
-    syllabusForm.setFieldValue('orderNo', s.orderNo);
-    setIsSyllabusDialogOpen(true);
+    setEditingSilibus(s);
+    silibusForm.setFieldValue('name', s.name);
+    setIsSilibusDialogOpen(true);
+  };
+
+  const handleDragEnd = (event, bengkung) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = bengkung.syllabus.findIndex(item => item.id === active.id);
+    const newIndex = bengkung.syllabus.findIndex(item => item.id === over.id);
+
+    const reorderedSilibus = arrayMove(bengkung.syllabus, oldIndex, newIndex);
+    
+    // Optimistically update query client
+    queryClient.setQueryData(['bengkungs'], (old) => 
+      old.map(b => b.id === bengkung.id ? { ...b, syllabus: reorderedSilibus } : b)
+    );
+
+    // Persist to backend
+    reorderedSilibus.forEach((item, index) => {
+      const newOrder = index + 1;
+      if (item.orderNo !== newOrder) {
+        silibusMutation.mutate({ ...item, orderNo: newOrder });
+      }
+    });
   };
 
   if (isLoading) {
@@ -152,8 +244,8 @@ export default function BengkungManagement() {
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-red-900">Bengkung & Syllabus</h1>
-          <p className="text-muted-foreground mt-1">Manage belt levels and their required technical syllabus.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-red-900">Bengkung & Silibus</h1>
+          <p className="text-muted-foreground mt-1">Manage belt levels and their required technical silibus.</p>
         </div>
         <Button onClick={() => { setEditingBengkung(null); bengkungForm.reset(); setIsBengkungDialogOpen(true); }} className="bg-red-700 hover:bg-red-800">
           <Plus className="mr-2 h-4 w-4" /> Add Bengkung
@@ -175,8 +267,8 @@ export default function BengkungManagement() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleAddSyllabus(b)}>
-                    <Plus className="w-3.5 h-3.5 mr-1" /> Add Syllabus
+                  <Button variant="outline" size="sm" onClick={() => handleAddSilibus(b)}>
+                    <Plus className="w-3.5 h-3.5 mr-1" /> Add Silibus
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => handleEditBengkung(b)}>
                     <Pencil className="h-4 w-4" />
@@ -190,28 +282,31 @@ export default function BengkungManagement() {
             <CardContent className="pt-4">
               <div className="space-y-2">
                 <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2 mb-3">
-                  <ListChecks className="w-3.5 h-3.5" /> Syllabus Requirements
+                  <ListChecks className="w-3.5 h-3.5" /> Silibus Requirements
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {b.syllabus?.map((s) => (
-                    <div key={s.id} className="group flex items-center justify-between p-2 rounded-lg border bg-white hover:border-red-200 transition-colors">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono text-slate-400">#{s.orderNo}</span>
-                        <span className="text-sm font-medium">{s.name}</span>
-                      </div>
-                      <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditSyllabus(b, s)}>
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteSyllabusId(s.id)}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                <div className="max-w-2xl">
+                  <DndContext 
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={(e) => handleDragEnd(e, b)}
+                  >
+                    <SortableContext 
+                      items={b.syllabus?.map(s => s.id) || []}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {b.syllabus?.sort((a, b) => a.orderNo - b.orderNo).map((s) => (
+                        <SortableSilibusItem 
+                          key={s.id} 
+                          s={s} 
+                          onEdit={(item) => handleEditSilibus(b, item)}
+                          onDelete={(id) => setDeleteSilibusId(id)}
+                        />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
                   {!b.syllabus?.length && (
-                    <div className="col-span-full py-4 text-center text-xs text-muted-foreground italic bg-slate-50 rounded-lg border border-dashed">
-                      No syllabus items defined for this level.
+                    <div className="py-8 text-center text-xs text-muted-foreground italic bg-slate-50 rounded-lg border border-dashed">
+                      No silibus items defined for this level.
                     </div>
                   )}
                 </div>
@@ -254,28 +349,22 @@ export default function BengkungManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Syllabus Dialog */}
-      <Dialog open={isSyllabusDialogOpen} onOpenChange={setIsSyllabusDialogOpen}>
+      {/* Silibus Dialog */}
+      <Dialog open={isSilibusDialogOpen} onOpenChange={setIsSilibusDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingSyllabus ? 'Edit Syllabus' : 'Add Syllabus'} - {selectedBengkung?.name}</DialogTitle>
+            <DialogTitle>{editingSilibus ? 'Edit Silibus' : 'Add Silibus'} - {selectedBengkung?.name}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); syllabusForm.handleSubmit(); }} className="space-y-4 pt-4">
-            <syllabusForm.Field name="name" children={(field) => (
+          <form onSubmit={(e) => { e.preventDefault(); silibusForm.handleSubmit(); }} className="space-y-4 pt-4">
+            <silibusForm.Field name="name" children={(field) => (
               <div className="space-y-2">
-                <Label>Syllabus Name</Label>
+                <Label>Silibus Name</Label>
                 <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} placeholder="e.g. Senaman Tua" required />
               </div>
             )} />
-            <syllabusForm.Field name="orderNo" children={(field) => (
-              <div className="space-y-2">
-                <Label>Order Number</Label>
-                <Input type="number" value={field.state.value} onChange={(e) => field.handleChange(parseInt(e.target.value))} required />
-              </div>
-            )} />
             <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsSyllabusDialogOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={syllabusMutation.isPending}>Save</Button>
+              <Button type="button" variant="outline" onClick={() => setIsSilibusDialogOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={silibusMutation.isPending}>Save</Button>
             </div>
           </form>
         </DialogContent>
@@ -286,14 +375,14 @@ export default function BengkungManagement() {
         onClose={() => setDeleteBengkungId(null)}
         onConfirm={() => deleteBengkungMutation.mutate(deleteBengkungId)}
         title="Delete Bengkung"
-        description="Are you sure? This will delete the bengkung and all its syllabus items."
+        description="Are you sure? This will delete the bengkung and all its silibus items."
       />
 
       <ConfirmDialog
-        isOpen={!!deleteSyllabusId}
-        onClose={() => setDeleteSyllabusId(null)}
-        onConfirm={() => deleteSyllabusMutation.mutate(deleteSyllabusId)}
-        title="Delete Syllabus Item"
+        isOpen={!!deleteSilibusId}
+        onClose={() => setDeleteSilibusId(null)}
+        onConfirm={() => deleteSilibusMutation.mutate(deleteSilibusId)}
+        title="Delete Silibus Item"
         description="Remove this requirement from the belt level?"
       />
     </div>

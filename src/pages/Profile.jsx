@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useQuery } from '@tanstack/react-query';
-import { User, Shield, IdCard, Calendar, Loader2, ShoppingBag, Search, Filter } from 'lucide-react';
+import { User, Shield, IdCard, Calendar, Loader2, ShoppingBag, Search, Filter, Award } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { fetchClient } from '@/api/fetchClient';
@@ -131,8 +131,11 @@ export default function Profile() {
                           <p className="text-sm font-medium">{user.profile.position || '-'}</p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Bengkung</p>
-                          <p className="text-sm font-medium">{user.profile.bengkung || '-'}</p>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Belt Rank</p>
+                          <div className="flex items-center gap-2">
+                             <Award className="w-4 h-4 text-red-600" />
+                             <p className="text-sm font-black">{user.currentBengkungName || 'Cindai Kuning (Kosong)'}</p>
+                          </div>
                         </div>
                         <div>
                           <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Baiah Year</p>
