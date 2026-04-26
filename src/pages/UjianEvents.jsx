@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from '@tanstack/react-form';
-import { Calendar as CalendarIcon, MapPin, Plus, Loader2, ClipboardCheck, Users, Search, Pencil } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Plus, Loader2, ClipboardCheck, Users, Search, Pencil, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { fetchClient } from '@/api/fetchClient';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -44,6 +45,7 @@ export default function UjianEvents() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [isPickingDate, setIsPickingDate] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
   const { data: events, isLoading } = useQuery({
     queryKey: ['ujian-events'],
@@ -65,6 +67,16 @@ export default function UjianEvents() {
       setEditingEvent(null);
       setIsPickingDate(false);
       toast.success(`Ujian Event ${editingEvent ? 'updated' : 'scheduled'} successfully`);
+    },
+    onError: (error) => toast.error(error.message)
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => fetchClient(`/ujian-events/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['ujian-events']);
+      setDeleteId(null);
+      toast.success('Ujian Event deleted');
     },
     onError: (error) => toast.error(error.message)
   });
@@ -179,6 +191,9 @@ export default function UjianEvents() {
                         <Link to={`/ujian-events/${event.id}/markings`}>
                           <ClipboardCheck className="w-3.5 h-3.5 mr-1" /> Markings
                         </Link>
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500" onClick={() => setDeleteId(event.id)}>
+                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   </TableCell>
@@ -308,6 +323,15 @@ export default function UjianEvents() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog 
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => deleteMutation.mutate(deleteId)}
+        title="Delete Ujian Event"
+        description="Are you sure? This will permanently delete the event and all associated candidate registrations/marks."
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }
