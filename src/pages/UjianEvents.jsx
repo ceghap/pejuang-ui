@@ -7,13 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import {
   Dialog,
@@ -171,29 +171,31 @@ export default function UjianEvents() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={event.status === 'Scheduled' ? 'secondary' : 'default'} 
-                           className={cn(
-                             "text-[10px] uppercase",
-                             event.status === 'Scheduled' && "bg-blue-50 text-blue-700 border-blue-100",
-                             event.status === 'Ongoing' && "bg-amber-50 text-amber-700 border-amber-100",
-                             event.status === 'Completed' && "bg-emerald-50 text-emerald-700 border-emerald-100",
-                             event.status === 'Cancelled' && "bg-slate-50 text-slate-500 border-slate-100"
-                           )}>
+                    <Badge variant={event.status === 'Scheduled' ? 'secondary' : 'default'}
+                      className={cn(
+                        "text-[10px] uppercase",
+                        event.status === 'Scheduled' && "bg-blue-50 text-blue-700 border-blue-100",
+                        event.status === 'Ongoing' && "bg-amber-50 text-amber-700 border-amber-100",
+                        event.status === 'Completed' && "bg-emerald-50 text-emerald-700 border-emerald-100",
+                        event.status === 'Cancelled' && "bg-slate-50 text-slate-500 border-slate-100"
+                      )}>
                       {event.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(event)}>
-                         <Pencil className="w-3.5 h-3.5" />
+                    <div className="flex justify-end items-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-blue-600" onClick={() => handleEdit(event)}>
+                        <Pencil className="w-3.5 h-3.5" />
                       </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link to={`/ujian-events/${event.id}/markings`}>
-                          <ClipboardCheck className="w-3.5 h-3.5 mr-1" /> Markings
+
+                      <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-tight px-3" asChild>
+                        <Link to={`/admin/ujian-events/${event.id}/markings`} className="flex items-center gap-1.5">
+                          <ClipboardCheck className="w-3.5 h-3.5" /> 
+                          <span>Markings</span>
                         </Link>
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500" onClick={() => setDeleteId(event.id)}>
-                         <Trash2 className="w-3.5 h-3.5" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-600" onClick={() => setDeleteId(event.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   </TableCell>
@@ -211,7 +213,7 @@ export default function UjianEvents() {
         </CardContent>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) { setEditingEvent(null); setIsPickingDate(false); } }}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) { setEditingEvent(null); setIsPickingDate(false); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingEvent ? 'Edit Ujian Event' : 'Schedule Ujian Event'}</DialogTitle>
@@ -243,14 +245,14 @@ export default function UjianEvents() {
                 field.handleChange(`${datePart}T${val}`);
                 setIsPickingDate(false);
               };
-              
+
               return (
                 <div className="space-y-2">
                   <Label>Date & Time</Label>
                   {!isPickingDate ? (
-                    <Button 
-                      type="button" 
-                      variant="outline" 
+                    <Button
+                      type="button"
+                      variant="outline"
                       className="w-full justify-start font-bold border-slate-200"
                       onClick={() => setIsPickingDate(true)}
                     >
@@ -259,39 +261,39 @@ export default function UjianEvents() {
                     </Button>
                   ) : (
                     <div className="p-3 border-2 border-red-100 rounded-lg bg-red-50/30 space-y-3 animate-in fade-in zoom-in duration-200">
-                       <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-1">
-                            <Label className="text-[10px] uppercase font-bold text-slate-500">1. Pick Date</Label>
-                            <Input 
-                              type="date" 
-                              autoFocus
-                              className="bg-white"
-                              value={datePart} 
-                              onChange={(e) => handleDateChange(e.target.value)} 
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-[10px] uppercase font-bold text-slate-500">2. Set Time</Label>
-                            <Input 
-                              id="time-picker"
-                              type="time" 
-                              className="bg-white"
-                              value={timePart} 
-                              onChange={(e) => handleTimeChange(e.target.value)} 
-                            />
-                          </div>
-                       </div>
-                       <div className="flex justify-between items-center pt-1">
-                          <p className="text-[10px] text-slate-400 italic">Selection will auto-confirm on time change</p>
-                          <Button 
-                            type="button" 
-                            variant="ghost"
-                            className="h-7 text-[10px] font-bold uppercase tracking-tight"
-                            onClick={() => setIsPickingDate(false)}
-                          >
-                            Cancel
-                          </Button>
-                       </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] uppercase font-bold text-slate-500">1. Pick Date</Label>
+                          <Input
+                            type="date"
+                            autoFocus
+                            className="bg-white"
+                            value={datePart}
+                            onChange={(e) => handleDateChange(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] uppercase font-bold text-slate-500">2. Set Time</Label>
+                          <Input
+                            id="time-picker"
+                            type="time"
+                            className="bg-white"
+                            value={timePart}
+                            onChange={(e) => handleTimeChange(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center pt-1">
+                        <p className="text-[10px] text-slate-400 italic">Selection will auto-confirm on time change</p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-7 text-[10px] font-bold uppercase tracking-tight"
+                          onClick={() => setIsPickingDate(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -301,7 +303,7 @@ export default function UjianEvents() {
               <form.Field name="status" children={(field) => (
                 <div className="space-y-2">
                   <Label>Event Status</Label>
-                  <select 
+                  <select
                     className="w-full bg-white border border-slate-200 rounded-md h-10 px-3 text-sm focus:ring-2 focus:ring-red-500/20"
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
@@ -324,7 +326,7 @@ export default function UjianEvents() {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog 
+      <ConfirmDialog
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={() => deleteMutation.mutate(deleteId)}

@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Layers, MapPin, Building2, Users, ArrowLeft, Plus, Trash2, Calendar, UserRound, GraduationCap, ClipboardCheck, History, Award, CheckCircle2, XCircle } from 'lucide-react';
+import { 
+  Layers, MapPin, Building2, Users, ArrowLeft, Plus, Trash2, 
+  Calendar, UserRound, GraduationCap, ClipboardCheck, History, 
+  XCircle, Loader2, Info, ChevronRight
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { fetchClient } from '@/api/fetchClient';
@@ -44,6 +48,7 @@ export default function GelanggangDetail() {
   const [activeTab, setActiveTab] = useState('members');
   const [selectedEventForReg, setSelectedEventForReg] = useState(null);
   const [selectedStudentsForReg, setSelectedStudentsForReg] = useState([]);
+  const [regToRemove, setRegToRemove] = useState(null);
 
   const { data: gelanggang, isLoading, error } = useQuery({
     queryKey: ['gelanggang', id],
@@ -51,8 +56,12 @@ export default function GelanggangDetail() {
   });
 
   const { data: eligibleStudents } = useQuery({
-    queryKey: ['eligible-students', id],
-    queryFn: () => fetchClient(`/gelanggang/${id}/eligible-students`),
+    queryKey: ['eligible-students', id, selectedEventForReg?.id],
+    queryFn: () => {
+       let url = `/gelanggang/${id}/eligible-students`;
+       if (selectedEventForReg?.id) url += `?eventId=${selectedEventForReg.id}`;
+       return fetchClient(url);
+    },
     enabled: activeTab === 'grading'
   });
 
@@ -75,9 +84,21 @@ export default function GelanggangDetail() {
     }),
     onSuccess: () => {
       queryClient.invalidateQueries(['ujian-results', id]);
+      queryClient.invalidateQueries(['eligible-students', id]);
       setSelectedEventForReg(null);
       setSelectedStudentsForReg([]);
-      toast.success('Students registered for Ujian successfully');
+      toast.success('Students registered successfully');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
+  const deleteRegMutation = useMutation({
+    mutationFn: (id) => fetchClient(`/ujian/registrations/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['ujian-results', id]);
+      queryClient.invalidateQueries(['eligible-students', id]);
+      setRegToRemove(null);
+      toast.success('Registration removed');
     },
     onError: (err) => toast.error(err.message)
   });
@@ -93,9 +114,7 @@ export default function GelanggangDetail() {
       setSelectedNewUser(null);
       toast.success('User added successfully');
     },
-    onError: (err) => {
-      toast.error(err.message || 'Failed to add user');
-    }
+    onError: (err) => toast.error(err.message)
   });
 
   const removeUserMutation = useMutation({
@@ -105,152 +124,176 @@ export default function GelanggangDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries(['gelanggang', id]);
       setUserToRemove(null);
-      toast.success('User removed from gelanggang');
+      toast.success('User removed');
     },
     onError: (err) => {
-      toast.error(err.message || 'Failed to remove user');
+      toast.error(err.message);
       setUserToRemove(null);
     }
   });
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-64 mb-6" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Skeleton className="h-48 col-span-1" />
-          <Skeleton className="h-48 col-span-2" />
-        </div>
+      <div className="flex h-[400px] items-center justify-center p-6 animate-pulse">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-300" />
       </div>
     );
   }
 
   if (error || !gelanggang) {
     return (
-      <div className="text-center p-12">
-        <h2 className="text-xl font-bold text-destructive">Error Loading Gelanggang</h2>
-        <Button onClick={() => navigate('/gelanggang')} className="mt-4" variant="outline">
-          Back to List
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <h2 className="text-xl font-bold text-destructive text-center">Failed to load Gelanggang</h2>
+        <Button variant="outline" onClick={() => navigate(-1)} className="font-bold">
+          <ArrowLeft className="w-4 h-4 mr-2" /> Return Home
         </Button>
       </div>
     );
   }
 
   const isJurulatih = gelanggang.jurulatih?.id === currentUser?.id;
-  const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'SuperAdmin';
+  const isAdmin = currentUser?.role === 'SuperAdmin' || currentUser?.role === 'Admin';
   const canManage = isJurulatih || isAdmin;
 
-  const handleAddSubmit = (e) => {
-    e.preventDefault();
-    if (!selectedNewUser) return;
-    addUserMutation.mutate(selectedNewUser);
-  };
-
   return (
-    <div className="space-y-6 max-w-6xl mx-auto p-4 md:p-8 pt-6">
-      <Button variant="ghost" onClick={() => navigate('/gelanggang')} className="pl-0 text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="w-4 h-4 mr-2" /> Back to My Gelanggang
-      </Button>
+    <div className="p-4 md:p-8 pt-6 space-y-8 max-w-7xl mx-auto pb-20">
+      {/* Mixed Weight Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="pl-0 text-muted-foreground hover:text-foreground mb-2">
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back
+          </Button>
+          <h1 className="text-2xl md:text-3xl font-light tracking-tight text-slate-900 italic">
+            Gelanggang <span className="font-semibold uppercase not-italic">{gelanggang.name}</span>
+          </h1>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm font-medium text-slate-500 mt-1">
+            <div className="flex items-center gap-1.5">
+              <Building2 className="w-4 h-4 text-blue-500" />
+              {gelanggang.cawangan?.name}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <MapPin className="w-4 h-4 text-rose-500" />
+              {gelanggang.location || 'No Location Set'}
+            </div>
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Info Card */}
-        <Card className="col-span-1 border-t-4 border-t-emerald-500 shadow-sm">
-          <CardHeader className="pb-4">
-             <div className="w-12 h-12 rounded-lg bg-emerald-50 flex items-center justify-center border border-emerald-100 mb-2">
-                <Layers className="w-6 h-6 text-emerald-600" />
-             </div>
-             <CardTitle className="text-2xl">{gelanggang.name}</CardTitle>
-             <CardDescription>{gelanggang.description || 'No description provided.'}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-             <div className="flex items-start gap-3">
-               <Building2 className="w-4 h-4 text-emerald-500 mt-1 shrink-0" />
-               <div>
-                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Cawangan</p>
-                  <p className="text-sm font-medium">{gelanggang.cawangan?.name}</p>
-               </div>
-             </div>
-             <div className="flex items-start gap-3">
-               <UserRound className="w-4 h-4 text-emerald-500 mt-1 shrink-0" />
-               <div>
-                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Jurulatih</p>
-                  <p className="text-sm font-medium">{gelanggang.jurulatih?.name || 'Open vacancy'}</p>
-               </div>
-             </div>
-             <div className="flex items-start gap-3">
-               <MapPin className="w-4 h-4 text-emerald-500 mt-1 shrink-0" />
-               <div>
-                  <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Location</p>
-                  <p className="text-sm">{gelanggang.location || 'Not specified'}</p>
-               </div>
-             </div>
-          </CardContent>
-        </Card>
+        {canManage && (
+          <Button onClick={() => setIsAddUserOpen(true)} className="shadow-lg shadow-primary/20 font-bold">
+            <Plus className="mr-2 h-4 w-4" /> Add Student
+          </Button>
+        )}
+      </div>
 
-        {/* Member Roster & Grading Tabs */}
-        <div className="col-span-1 md:col-span-2 space-y-6">
-          <div className="flex gap-2 p-1 bg-slate-100 rounded-lg w-fit">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Sidebar Cards */}
+        <div className="lg:col-span-1 space-y-6">
+          <Card className="border-border/50">
+            <CardHeader className="pb-3 border-b bg-muted/20">
+               <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                  <Info className="w-3.5 h-3.5" /> Center Overview
+               </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm">
+                  <UserRound className="w-5 h-5" />
+                </div>
+                <div>
+                   <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Ketua Jurulatih</p>
+                   <p className="font-bold text-sm text-slate-900">{gelanggang.jurulatih?.name || 'Unassigned'}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                <div className="space-y-0.5">
+                   <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Students</p>
+                   <p className="text-2xl font-black text-slate-900">{gelanggang.users?.length || 0}</p>
+                </div>
+                <div className="space-y-0.5">
+                   <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Assistants</p>
+                   <p className="text-2xl font-black text-slate-900">{gelanggang.pembantuCount || 0}</p>
+                </div>
+              </div>
+
+              {gelanggang.description && (
+                <div className="pt-4 border-t border-slate-100">
+                   <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider mb-2">Description</p>
+                   <p className="text-xs text-slate-600 leading-relaxed italic">
+                    "{gelanggang.description}"
+                   </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="lg:col-span-3 space-y-6">
+          <div className="flex gap-2 p-1 bg-slate-100/80 rounded-xl w-fit border border-slate-200">
             <Button 
-              variant={activeTab === 'members' ? 'secondary' : 'ghost'} 
+              variant="ghost" 
               size="sm" 
               onClick={() => setActiveTab('members')}
-              className={cn(activeTab === 'members' && "bg-white shadow-sm")}
+              className={cn(
+                "rounded-lg px-6 font-bold text-xs uppercase tracking-widest transition-all",
+                activeTab === 'members' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500"
+              )}
             >
-              <Users className="w-4 h-4 mr-2" /> Members
+              <Users className="w-3.5 h-3.5 mr-2" /> Members
             </Button>
             <Button 
-              variant={activeTab === 'grading' ? 'secondary' : 'ghost'} 
+              variant="ghost" 
               size="sm" 
               onClick={() => setActiveTab('grading')}
-              className={cn(activeTab === 'grading' && "bg-white shadow-sm")}
+              className={cn(
+                "rounded-lg px-6 font-bold text-xs uppercase tracking-widest transition-all",
+                activeTab === 'grading' ? "bg-white text-rose-600 shadow-sm" : "text-slate-500"
+              )}
             >
-              <GraduationCap className="w-4 h-4 mr-2" /> Grading & Ujian
+              <GraduationCap className="w-3.5 h-3.5 mr-2" /> Ujian & Grading
             </Button>
           </div>
 
           {activeTab === 'members' ? (
-            <Card className="shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between pb-4">
-                 <div>
-                    <CardTitle className="flex items-center gap-2">
-                       <Users className="w-5 h-5 text-blue-500" /> Member Roster
+            <Card className="overflow-hidden border-border/50 border-t-4 border-t-blue-600 shadow-sm">
+              <CardHeader className="pb-3 border-b bg-muted/20">
+                 <div className="flex items-center justify-between">
+                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                       <Users className="w-3.5 h-3.5" /> Student Roster
                     </CardTitle>
-                    <CardDescription>{gelanggang.users?.length || 0} active members.</CardDescription>
+                    <Badge variant="outline" className="text-[10px] bg-white font-black uppercase tracking-tighter">Active Center</Badge>
                  </div>
-                 {canManage && (
-                    <Button onClick={() => setIsAddUserOpen(true)} size="sm">
-                       <Plus className="w-4 h-4 mr-1" /> Add Member
-                    </Button>
-                 )}
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                  <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-muted/30">
                        <TableRow>
-                          <TableHead>Student Name</TableHead>
-                          <TableHead>Contact</TableHead>
-                          <TableHead>Joined</TableHead>
-                          {canManage && <TableHead className="text-right">Actions</TableHead>}
+                          <TableHead className="font-black uppercase text-[10px] tracking-widest py-4 pl-6 text-slate-400">Student Name</TableHead>
+                          <TableHead className="font-black uppercase text-[10px] tracking-widest py-4 text-slate-400">Current Rank</TableHead>
+                          {canManage && <TableHead className="text-right py-4 pr-6 font-black uppercase text-[10px] tracking-widest text-slate-400">Actions</TableHead>}
                        </TableRow>
                     </TableHeader>
                     <TableBody>
                        {gelanggang.users?.map((u) => (
-                          <TableRow key={u.id}>
-                             <TableCell className="font-medium">{u.name}</TableCell>
-                             <TableCell className="text-muted-foreground text-xs">{u.phoneNumber || '-'}</TableCell>
-                             <TableCell className="text-xs text-muted-foreground">
-                                {new Date(u.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          <TableRow key={u.id} className="hover:bg-muted/10 border-border/30">
+                             <TableCell className="py-4 pl-6">
+                                <span className="font-bold text-slate-900 text-sm">{u.name}</span>
+                             </TableCell>
+                             <TableCell>
+                                <Badge variant="outline" className="text-[9px] font-black uppercase bg-slate-50 text-slate-600">
+                                   {u.currentBengkungName || 'Cindai Kuning'}
+                                </Badge>
                              </TableCell>
                              {canManage && (
-                                <TableCell className="text-right">
+                                <TableCell className="text-right pr-6">
                                    <Button 
                                       variant="ghost" 
                                       size="icon" 
-                                      className="text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                                      className="h-8 w-8 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-full"
                                       onClick={() => setUserToRemove(u)}
                                    >
-                                      <Trash2 className="w-4 h-4" />
+                                      <Trash2 className="w-3.5 h-3.5" />
                                    </Button>
                                 </TableCell>
                              )}
@@ -258,8 +301,8 @@ export default function GelanggangDetail() {
                        ))}
                        {(!gelanggang.users || gelanggang.users.length === 0) && (
                           <TableRow>
-                             <TableCell colSpan={canManage ? 4 : 3} className="text-center text-muted-foreground py-8">
-                                No students registered yet.
+                             <TableCell colSpan={3} className="text-center py-20 text-slate-400 italic text-xs uppercase tracking-widest opacity-50 font-bold">
+                                No registered students
                              </TableCell>
                           </TableRow>
                        )}
@@ -269,90 +312,99 @@ export default function GelanggangDetail() {
             </Card>
           ) : (
             <div className="space-y-6">
-              {/* Upcoming Exams for Registration */}
-              <Card className="border-t-4 border-t-red-600">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ClipboardCheck className="w-5 h-5 text-red-600" /> Upcoming Exams
+              {/* Upcoming Exams styled like Shop Cards */}
+              <Card className="overflow-hidden border-t-4 border-t-rose-600 border-border/50 shadow-sm">
+                <CardHeader className="pb-3 border-b bg-rose-50/20">
+                  <CardTitle className="text-[10px] font-black uppercase tracking-widest text-rose-900 flex items-center gap-2">
+                    <ClipboardCheck className="w-4 h-4" /> Available Ujian Sessions
                   </CardTitle>
-                  <CardDescription>Register your students for upcoming bengkung examinations.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {upcomingEvents?.filter(e => e.status === 'Scheduled' || e.status === 'Ongoing').map(event => (
-                      <Card key={event.id} className="border-slate-200 hover:border-red-200 transition-colors cursor-pointer" onClick={() => setSelectedEventForReg(event)}>
-                        <CardHeader className="p-4 pb-2">
-                          <CardTitle className="text-sm">{event.title}</CardTitle>
-                          <CardDescription className="text-[10px]">{formatDate(event.date, true)}</CardDescription>
+                      <Card key={event.id} className="flex flex-col h-full hover:shadow-lg transition-all border-border/50 bg-card/50 group overflow-hidden">
+                        <CardHeader className="pb-2">
+                          <div className="flex justify-between items-start">
+                             <div className="text-[9px] font-black text-rose-600 uppercase tracking-widest mb-1">
+                                {event.status}
+                             </div>
+                             <Calendar className="w-3.5 h-3.5 text-slate-300" />
+                          </div>
+                          <CardTitle className="text-lg font-black uppercase text-slate-900 leading-tight">{event.title}</CardTitle>
+                          <CardDescription className="text-[10px] font-bold text-slate-500 uppercase">
+                             {formatDate(event.date, true)}
+                          </CardDescription>
                         </CardHeader>
-                        <CardContent className="p-4 pt-0">
-                           <div className="flex items-center text-xs text-muted-foreground">
-                              <MapPin className="w-3 h-3 mr-1" /> {event.location}
+                        <CardContent className="flex-1 pb-4">
+                           <div className="flex items-center text-xs font-bold text-slate-600 gap-2 mt-2">
+                              <MapPin className="w-3.5 h-3.5 text-rose-500" /> {event.location}
                            </div>
                         </CardContent>
-                        <CardFooter className="p-4 pt-0">
-                           <Button variant="outline" size="sm" className="w-full text-xs h-8">Select for Registration</Button>
+                        <CardFooter className="pt-0 border-t border-border/50 bg-muted/20 p-4">
+                           <Button 
+                              onClick={() => setSelectedEventForReg(event)}
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full text-[10px] font-black uppercase h-8 group-hover:bg-rose-600 group-hover:text-white group-hover:border-rose-600 transition-all rounded-lg"
+                           >
+                              Register Candidates
+                           </Button>
                         </CardFooter>
                       </Card>
                     ))}
-                    {!upcomingEvents?.filter(e => e.status === 'Scheduled').length && (
-                      <div className="col-span-full py-8 text-center text-muted-foreground bg-slate-50 border border-dashed rounded-lg">
-                        No upcoming examination sessions scheduled.
+                    {!upcomingEvents?.filter(e => e.status === 'Scheduled' || e.status === 'Ongoing').length && (
+                      <div className="col-span-full py-12 text-center text-slate-400 border-2 border-dashed rounded-2xl">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 italic">No technical examinations scheduled</p>
                       </div>
                     )}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Ujian History / Results */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <History className="w-5 h-5 text-blue-500" /> Result History
+              {/* History Table */}
+              <Card className="overflow-hidden border-border/50 shadow-sm">
+                <CardHeader className="pb-3 border-b bg-muted/20">
+                  <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    <History className="w-4 h-4" /> Examination Performance History
                   </CardTitle>
-                  <CardDescription>Performance records of students in this gelanggang.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-0">
                    <Table>
-                      <TableHeader>
+                      <TableHeader className="bg-muted/30">
                         <TableRow>
-                          <TableHead>Student</TableHead>
-                          <TableHead>Event</TableHead>
-                          <TableHead>Target Bengkung</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Marks</TableHead>
+                          <TableHead className="font-black uppercase text-[9px] tracking-widest py-4 pl-6 text-slate-400">Student</TableHead>
+                          <TableHead className="font-black uppercase text-[9px] tracking-widest py-4 text-slate-400">Event Details</TableHead>
+                          <TableHead className="font-black uppercase text-[9px] tracking-widest py-4 text-center text-slate-400">Status</TableHead>
+                          <TableHead className="text-right py-4 pr-6 font-black uppercase text-[9px] tracking-widest text-slate-400">Mark</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {ujianResults?.map((res) => (
-                          <TableRow key={res.id}>
-                            <TableCell className="font-medium text-xs">{res.studentName}</TableCell>
-                            <TableCell>
+                          <TableRow key={res.id} className="border-border/30 hover:bg-muted/5 transition-colors">
+                            <TableCell className="py-4 pl-6 font-bold text-slate-900 text-xs uppercase tracking-tight">{res.studentName}</TableCell>
+                            <TableCell className="py-4">
                                <div className="flex flex-col">
-                                  <span className="text-[11px] font-bold">{res.eventTitle}</span>
-                                  <span className="text-[9px] text-muted-foreground">{formatDate(res.eventDate)}</span>
+                                  <span className="text-[11px] font-black text-slate-700">{res.eventTitle}</span>
+                                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">{formatDate(res.eventDate)} — {res.bengkungName}</span>
                                </div>
                             </TableCell>
-                            <TableCell className="text-xs">{res.bengkungName}</TableCell>
-                            <TableCell>
+                            <TableCell className="py-4 text-center">
                               {res.status === 'Passed' ? (
-                                <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border-emerald-100 text-[9px] uppercase">Passed</Badge>
+                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 text-[8px] font-black uppercase px-2">Passed</Badge>
                               ) : res.status === 'Failed' ? (
-                                <Badge className="bg-rose-50 text-rose-700 hover:bg-rose-50 border-rose-100 text-[9px] uppercase">Failed</Badge>
+                                <Badge className="bg-rose-50 text-rose-700 border-rose-100 text-[8px] font-black uppercase px-2">Failed</Badge>
                               ) : (
-                                <Badge variant="outline" className="text-[9px] uppercase">Registered</Badge>
+                                <div className="flex items-center justify-center gap-1">
+                                   <Badge variant="outline" className="text-[8px] font-black uppercase text-slate-400 px-2">Enrolled</Badge>
+                                   <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-300 hover:text-rose-500 rounded-full" onClick={() => setRegToRemove(res)}>
+                                      <XCircle className="w-3.5 h-3.5" />
+                                   </Button>
+                                </div>
                               )}
                             </TableCell>
-                            <TableCell className="text-right font-mono text-xs">{res.totalMark ?? '-'}</TableCell>
+                            <TableCell className="text-right pr-6 font-mono font-black text-xs text-slate-900">{res.totalMark ?? '-'}</TableCell>
                           </TableRow>
                         ))}
-                        {!ujianResults?.length && (
-                          <TableRow>
-                             <TableCell colSpan={5} className="text-center py-8 text-muted-foreground text-xs italic">
-                               No results recorded yet.
-                             </TableCell>
-                          </TableRow>
-                        )}
                       </TableBody>
                    </Table>
                 </CardContent>
@@ -360,102 +412,115 @@ export default function GelanggangDetail() {
             </div>
           )}
         </div>
-
       </div>
 
-      {/* Add User Dialog */}
+      {/* Manual Dialogs */}
       <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-         <DialogContent>
-            <DialogHeader>
-               <DialogTitle>Add Member to Gelanggang</DialogTitle>
-               <DialogDescription>
-                  Search for a registered user to add them to this gelanggang. They will automatically be transferred if they belong to another setup.
-               </DialogDescription>
+         <DialogContent className="rounded-3xl border-slate-200 shadow-2xl">
+            <DialogHeader className="pb-4 border-b">
+               <DialogTitle className="text-lg font-black uppercase tracking-tight italic">Register New Student</DialogTitle>
+               <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Search for a martial artist to join this center.</DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleAddSubmit} className="space-y-4 mt-4">
+            <div className="py-8">
                <UserLookup 
-                  label="Search User"
-                  value={selectedNewUser}
-                  onChange={(val) => setSelectedNewUser(val)}
+                 onChange={(uid) => setSelectedNewUser(uid)} 
+                 placeholder="Enter name, IC, or phone..."
                />
-               <div className="flex justify-end gap-3 pt-4">
-                  <Button type="button" variant="outline" onClick={() => setIsAddUserOpen(false)}>
-                     Cancel
-                  </Button>
-                  <Button type="submit" disabled={!selectedNewUser || addUserMutation.isPending}>
-                     {addUserMutation.isPending ? 'Adding...' : 'Add User'}
-                  </Button>
-               </div>
-            </form>
+            </div>
+            <div className="flex justify-end gap-3 pt-6 border-t">
+               <Button variant="ghost" onClick={() => setIsAddUserOpen(false)} className="uppercase text-[10px] font-black tracking-widest">Cancel</Button>
+               <Button 
+                 onClick={() => addUserMutation.mutate(selectedNewUser)} 
+                 disabled={!selectedNewUser || addUserMutation.isPending}
+                 className="uppercase text-[10px] font-black tracking-widest px-8 shadow-lg shadow-primary/20"
+               >
+                 {addUserMutation.isPending && <Loader2 className="animate-spin w-3 h-3 mr-2" />}
+                 Add to Roster
+               </Button>
+            </div>
          </DialogContent>
       </Dialog>
 
-      {/* Remove User Confirmation */}
       <ConfirmDialog
          isOpen={!!userToRemove}
          onClose={() => setUserToRemove(null)}
          title="Remove Member?"
-         description={`Are you sure you want to remove ${userToRemove?.name} from this gelanggang? They will remain in the system but will no longer be associated with this training center.`}
+         description={`Are you sure you want to remove ${userToRemove?.name} from this center?`}
          onConfirm={() => removeUserMutation.mutate(userToRemove.id)}
-         confirmText="Remove Member"
+         confirmText="Remove Student"
          variant="destructive"
          isLoading={removeUserMutation.isPending}
       />
 
-      {/* Ujian Registration Dialog */}
+      <ConfirmDialog
+         isOpen={!!regToRemove}
+         onClose={() => setRegToRemove(null)}
+         title="Cancel Registration?"
+         description={`Remove ${regToRemove?.studentName} from the ${regToRemove?.eventTitle}?`}
+         onConfirm={() => deleteRegMutation.mutate(regToRemove.id)}
+         confirmText="Cancel Ujian"
+         variant="destructive"
+         isLoading={deleteRegMutation.isPending}
+      />
+
+      {/* Registration Flow Dialog */}
       <Dialog open={!!selectedEventForReg} onOpenChange={(open) => !open && setSelectedEventForReg(null)}>
-         <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-               <DialogTitle>Register Students</DialogTitle>
-               <DialogDescription>
-                  Event: {selectedEventForReg?.title} ({formatDate(selectedEventForReg?.date || new Date())})
+         <DialogContent className="sm:max-w-[500px] rounded-3xl border-slate-200 shadow-2xl">
+            <DialogHeader className="pb-4 border-b border-rose-50">
+               <DialogTitle className="text-xl font-black uppercase italic text-rose-900">Ujian Registration</DialogTitle>
+               <DialogDescription className="text-[10px] font-bold text-rose-600/60 uppercase tracking-widest flex items-center gap-2 mt-1">
+                  <ClipboardCheck className="w-3 h-3 text-rose-600" />
+                  {selectedEventForReg?.title} — {formatDate(selectedEventForReg?.date || new Date())}
                </DialogDescription>
             </DialogHeader>
-            <div className="py-4 space-y-4">
-               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Select Eligible Students</p>
-               <div className="space-y-2 border rounded-lg divide-y bg-slate-50/50">
-                  {eligibleStudents?.map(student => (
-                    <div key={student.id} className="flex items-center justify-between p-3">
-                       <div className="flex flex-col">
-                          <span className="text-sm font-bold">{student.name}</span>
-                          <span className="text-[10px] text-muted-foreground">Current: {student.currentBengkung?.name || 'Cindai Kuning (Kosong)'}</span>
-                       </div>
-                       <div className="flex items-center gap-3">
-                          {student.eligibleBengkung ? (
-                            <>
-                              <Badge variant="outline" className="text-[9px] bg-white">{student.eligibleBengkung.name}</Badge>
-                              <input 
-                                type="checkbox"
-                                className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
-                                checked={selectedStudentsForReg.some(s => s.userId === student.id)}
-                                onChange={(e) => {
-                                   if (e.target.checked) {
-                                      setSelectedStudentsForReg([...selectedStudentsForReg, { userId: student.id, targetBengkungId: student.eligibleBengkung.id }]);
-                                   } else {
-                                      setSelectedStudentsForReg(selectedStudentsForReg.filter(s => s.userId !== student.id));
-                                   }
-                                }}
-                              />
-                            </>
-                          ) : (
-                            <span className="text-[10px] italic text-slate-400">Max Level Reached</span>
-                          )}
-                       </div>
+            <div className="py-6 space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+               <p className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] mb-4 pl-1">Eligible Students in Center</p>
+               {eligibleStudents?.map(student => (
+                 <div key={student.id} className="flex items-center justify-between p-3 border rounded-2xl bg-slate-50/50 hover:bg-white transition-all border-slate-100 hover:border-rose-200 hover:shadow-md">
+                    <div>
+                       <p className={cn("text-xs font-black uppercase", student.isRegistered ? "text-slate-300" : "text-slate-900")}>{student.name}</p>
+                       <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight mt-0.5">
+                          Rank: {student.currentBengkung?.name || 'Cindai Kuning'}
+                       </p>
                     </div>
-                  ))}
-                  {!eligibleStudents?.length && (
-                    <div className="p-8 text-center text-xs text-muted-foreground italic">No students available in this gelanggang.</div>
-                  )}
-               </div>
+                    <div className="flex items-center gap-3">
+                       {student.isRegistered ? (
+                          <Badge variant="outline" className="text-[8px] font-black uppercase text-slate-300 border-slate-100 px-2 py-0.5">Already Enrolled</Badge>
+                       ) : student.eligibleBengkung ? (
+                         <>
+                           <Badge variant="outline" className="text-[9px] font-black bg-white border-rose-100 text-rose-600 uppercase shadow-sm">{student.eligibleBengkung.name}</Badge>
+                           <input 
+                             type="checkbox"
+                             className="w-5 h-5 rounded-lg border-slate-200 text-rose-600 focus:ring-rose-500 shadow-inner cursor-pointer"
+                             checked={selectedStudentsForReg.some(s => s.userId === student.id)}
+                             onChange={(e) => {
+                                if (e.target.checked) {
+                                   setSelectedStudentsForReg([...selectedStudentsForReg, { userId: student.id, targetBengkungId: student.eligibleBengkung.id }]);
+                                } else {
+                                   setSelectedStudentsForReg(selectedStudentsForReg.filter(s => s.userId !== student.id));
+                                }
+                             }}
+                           />
+                         </>
+                       ) : (
+                         <Badge variant="outline" className="text-[8px] font-bold uppercase text-slate-400 italic border-slate-100">{student.status}</Badge>
+                       )}
+                    </div>
+                 </div>
+               ))}
+               {!eligibleStudents?.length && (
+                  <div className="py-12 text-center text-[10px] font-black uppercase text-slate-400 tracking-widest opacity-30 italic">No candidates found</div>
+               )}
             </div>
-            <div className="flex justify-end gap-3 pt-2">
-               <Button variant="outline" onClick={() => setSelectedEventForReg(null)}>Cancel</Button>
+            <div className="flex justify-end gap-3 pt-6 border-t border-slate-50">
+               <Button variant="ghost" onClick={() => setSelectedEventForReg(null)} className="uppercase text-[10px] font-black tracking-widest rounded-xl px-6">Cancel</Button>
                <Button 
-                  className="bg-red-700" 
+                  className="bg-rose-600 hover:bg-rose-700 uppercase text-[10px] font-black tracking-widest px-8 rounded-xl shadow-lg shadow-rose-500/20" 
                   disabled={selectedStudentsForReg.length === 0 || registerMutation.isPending}
                   onClick={() => registerMutation.mutate({ eventId: selectedEventForReg.id, registrations: selectedStudentsForReg })}
                >
-                  {registerMutation.isPending ? 'Registering...' : `Register ${selectedStudentsForReg.length} Students`}
+                  {registerMutation.isPending && <Loader2 className="animate-spin w-3 h-3 mr-2" />}
+                  Register {selectedStudentsForReg.length} Students
                </Button>
             </div>
          </DialogContent>

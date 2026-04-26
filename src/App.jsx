@@ -132,7 +132,7 @@ const router = createBrowserRouter([
           { path: '/admin/gelanggang', element: <ManageGelanggang /> },
           { path: '/admin/bengkung', element: <BengkungManagement /> },
           { path: '/admin/ujian-events', element: <UjianEvents /> },
-          { path: '/ujian-events/:eventId/markings', element: <JuryMarking /> },
+          { path: '/admin/ujian-events/:eventId/markings', element: <JuryMarking /> },
           { path: '/admin/finance', element: <FinancialDashboard /> },
           { path: '/admin/tiers', element: <TierConfigs /> }
         ]

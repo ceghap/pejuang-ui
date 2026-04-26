@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -49,34 +50,23 @@ export default function ManageGelanggang() {
     queryFn: () => fetchClient('/cawangan'),
   });
 
-  const createMutation = useMutation({
-    mutationFn: (data) => fetchClient('/gelanggang', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['gelanggangs']);
-      setIsDialogOpen(false);
-      toast.success('Gelanggang created successfully');
+  const mutation = useMutation({
+    mutationFn: (data) => {
+      const method = editingGelanggang ? 'PUT' : 'POST';
+      const url = editingGelanggang ? `/gelanggang/${editingGelanggang.id}` : '/gelanggang';
+      return fetchClient(url, {
+        method,
+        body: JSON.stringify(data),
+      });
     },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to create gelanggang');
-    }
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: (data) => fetchClient(`/gelanggang/${data.id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
     onSuccess: () => {
       queryClient.invalidateQueries(['gelanggangs']);
       setIsDialogOpen(false);
       setEditingGelanggang(null);
-      toast.success('Gelanggang updated successfully');
+      toast.success(`Gelanggang ${editingGelanggang ? 'updated' : 'created'} successfully`);
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to update gelanggang');
+      toast.error(error.message || 'Failed to process gelanggang');
     }
   });
 
@@ -104,21 +94,17 @@ export default function ManageGelanggang() {
       jurulatihId: null
     },
     onSubmit: async ({ value }) => {
-      if (editingGelanggang) {
-        updateMutation.mutate({ ...value, id: editingGelanggang.id });
-      } else {
-        createMutation.mutate(value);
-      }
+      mutation.mutate(value);
     },
   });
 
-  const handleEdit = (gelanggang) => {
-    setEditingGelanggang(gelanggang);
-    form.setFieldValue('name', gelanggang.name);
-    form.setFieldValue('description', gelanggang.description || '');
-    form.setFieldValue('location', gelanggang.location || '');
-    form.setFieldValue('cawanganId', gelanggang.cawangan.id);
-    form.setFieldValue('jurulatihId', gelanggang.jurulatih?.id || null);
+  const handleEdit = (g) => {
+    setEditingGelanggang(g);
+    form.setFieldValue('name', g.name);
+    form.setFieldValue('description', g.description || '');
+    form.setFieldValue('location', g.location || '');
+    form.setFieldValue('cawanganId', g.cawangan?.id || '');
+    form.setFieldValue('jurulatihId', g.jurulatih?.id || null);
     setIsDialogOpen(true);
   };
 
@@ -136,14 +122,12 @@ export default function ManageGelanggang() {
     );
   }
 
-  const isMutating = createMutation.isPending || updateMutation.isPending;
-
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Gelanggang Management</h1>
-          <p className="text-muted-foreground mt-1">Manage gelanggang, assign them to branches, and set Jurulatih (Trainers).</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Gelanggang Management</h1>
+          <p className="text-muted-foreground mt-1">Manage gelanggang centers and assign leaders.</p>
         </div>
         <Button onClick={handleAdd} className="w-full md:w-auto">
           <Plus className="mr-2 h-4 w-4" /> Add Gelanggang
@@ -157,7 +141,7 @@ export default function ManageGelanggang() {
               <Layers className="w-5 h-5 text-emerald-500" /> All Gelanggang
             </CardTitle>
             <CardDescription>
-              {gelanggangs?.length || 0} gelanggang in the system.
+              {gelanggangs?.length || 0} training centers in the system.
             </CardDescription>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -175,51 +159,36 @@ export default function ManageGelanggang() {
             </select>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 border-t">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[180px]">Gelanggang Name</TableHead>
-                <TableHead className="w-[200px]">Location</TableHead>
-                <TableHead>Branch (Cawangan)</TableHead>
+                <TableHead className="pl-6">Gelanggang Name</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Branch</TableHead>
                 <TableHead>Jurulatih</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right pr-6">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {gelanggangs?.map((g) => (
                 <TableRow key={g.id}>
-                  <TableCell className="font-semibold py-3">
-                    <div className="flex flex-col max-w-[180px]">
-                      <span className="text-sm truncate">{g.name}</span>
-                      <span className="text-[10px] text-muted-foreground truncate opacity-70">{g.description}</span>
-                    </div>
-                  </TableCell>
+                  <TableCell className="font-bold py-4 pl-6">{g.name}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{g.location || '-'}</TableCell>
                   <TableCell>
-                    <div className="flex items-start gap-1.5 text-muted-foreground max-w-[200px]">
-                      <MapPin className="w-3 h-3 mt-1 shrink-0" />
-                      <span className="text-xs line-clamp-2 leading-tight">{g.location || 'No location set'}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1.5 text-xs font-semibold uppercase">
-                      <Building2 className="w-4 h-4 text-emerald-500" />
-                      <span>{g.cawangan?.name}</span>
-                    </div>
+                    <Badge variant="outline" className="text-[10px] uppercase font-bold bg-slate-50">{g.cawangan?.name}</Badge>
                   </TableCell>
                   <TableCell>
                     {g.jurulatih ? (
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center">
-                          <UserRound className="w-3 h-3 text-blue-500" />
-                        </div>
-                        <span className="text-xs font-bold">{g.jurulatih.name}</span>
+                      <div className="flex items-center gap-2 text-xs font-medium">
+                        <UserRound className="w-3.5 h-3.5 text-blue-500" />
+                        {g.jurulatih.name}
                       </div>
                     ) : (
-                      <span className="text-[10px] text-muted-foreground italic font-medium">Unassigned</span>
+                      <span className="text-xs italic text-slate-400">Unassigned</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right pr-6">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(g)}>
                         <Pencil className="h-4 w-4" />
@@ -247,125 +216,60 @@ export default function ManageGelanggang() {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{editingGelanggang ? 'Edit Gelanggang' : 'Add New Gelanggang'}</DialogTitle>
-            <DialogDescription>
-              {editingGelanggang ? 'Update the details of this gelanggang.' : 'Create a new gelanggang.'}
-            </DialogDescription>
           </DialogHeader>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              form.handleSubmit();
-            }}
-            className="space-y-4 pt-4"
-          >
-            <form.Field
-              name="name"
-              children={(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor={field.name}>Gelanggang Name</Label>
-                  <Input
-                    id={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="e.g. Gelanggang Putra"
-                    required
-                  />
-                </div>
-              )}
-            />
+          <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }} className="space-y-4 pt-4">
+            <form.Field name="name" children={(field) => (
+              <div className="space-y-2">
+                <Label>Gelanggang Name</Label>
+                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} placeholder="e.g. Gelanggang Putra" required />
+              </div>
+            )} />
 
-            <form.Field
-              name="cawanganId"
-              children={(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor={field.name}>Branch (Cawangan)</Label>
-                  <select
-                    id={field.name}
-                    name={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
-                    required
-                  >
-                    <option value="" disabled>Select Cawangan...</option>
-                    {cawangans?.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            />
+            <form.Field name="cawanganId" children={(field) => (
+              <div className="space-y-2">
+                <Label>Branch (Cawangan)</Label>
+                <select
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  required
+                >
+                  <option value="" disabled>Select Cawangan...</option>
+                  {cawangans?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+            )} />
 
-            <form.Field
-              name="location"
-              children={(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor={field.name}>Location Details</Label>
-                  <Input
-                    id={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="e.g. Dataran Merdeka, Kuala Lumpur"
-                  />
-                </div>
-              )}
-            />
+            <form.Field name="location" children={(field) => (
+              <div className="space-y-2">
+                <Label>Location</Label>
+                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} placeholder="e.g. Kuala Lumpur" />
+              </div>
+            )} />
 
-            <form.Field
-              name="description"
-              children={(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor={field.name}>Description</Label>
-                  <Textarea
-                    id={field.name}
-                    value={field.state.value}
-                    onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="Optional description"
-                    className="resize-none"
-                    rows={2}
-                  />
-                </div>
-              )}
-            />
+            <form.Field name="description" children={(field) => (
+              <div className="space-y-2">
+                <Label>Description</Label>
+                <Textarea value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} rows={2} />
+              </div>
+            )} />
 
-            <form.Field
-              name="jurulatihId"
-              children={(field) => (
-                <div>
-                  <UserLookup
-                    key={editingGelanggang?.id || 'new'}
-                    label="Jurulatih (Trainer in Charge)"
-                    placeholder="Search user to assign as Jurulatih..."
-                    value={field.state.value}
-                    initialData={editingGelanggang?.jurulatih ?? null}
-                    onChange={(val) => field.handleChange(val)}
-                  />
-                </div>
-              )}
-            />
+            <form.Field name="jurulatihId" children={(field) => (
+              <UserLookup 
+                label="Jurulatih"
+                placeholder="Assign a leader..."
+                value={field.state.value}
+                initialData={editingGelanggang?.jurulatih ?? null}
+                onChange={(val) => field.handleChange(val)}
+              />
+            )} />
 
             <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
+              <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={mutation.isPending}>
+                {mutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : editingGelanggang ? 'Update' : 'Create'}
               </Button>
-              <form.Subscribe
-                selector={(state) => [state.canSubmit, state.isSubmitting]}
-                children={([canSubmit, isSubmitting]) => (
-                  <Button type="submit" disabled={!canSubmit || isMutating || isSubmitting}>
-                    {(isMutating || isSubmitting) ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
-                    ) : (
-                      editingGelanggang ? 'Update Gelanggang' : 'Create Gelanggang'
-                    )}
-                  </Button>
-                )}
-              />
             </div>
           </form>
         </DialogContent>
@@ -376,7 +280,7 @@ export default function ManageGelanggang() {
         onClose={() => setDeleteId(null)}
         onConfirm={() => deleteMutation.mutate(deleteId)}
         title="Delete Gelanggang"
-        description="Are you sure you want to delete this gelanggang? This action cannot be undone."
+        description="Are you sure? This action cannot be undone."
         isLoading={deleteMutation.isPending}
       />
     </div>

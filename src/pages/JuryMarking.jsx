@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Save, CheckCircle, XCircle, AlertCircle, ClipboardList, User, UserPlus } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, CheckCircle, XCircle, AlertCircle, ClipboardList, User, UserPlus, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { UserLookup } from '@/components/ui/user-lookup';
 import { fetchClient } from '@/api/fetchClient';
 import { toast } from 'sonner';
@@ -30,6 +31,7 @@ export default function JuryMarking() {
 
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [selectedBeltId, setSelectedBeltId] = useState('');
+  const [deleteRegId, setDeleteRegId] = useState(null);
 
   const { data: bengkungs } = useQuery({
     queryKey: ['bengkungs'],
@@ -84,6 +86,17 @@ export default function JuryMarking() {
     onError: (err) => toast.error(err.message)
   });
 
+  const deleteRegMutation = useMutation({
+    mutationFn: (id) => fetchClient(`/ujian/registrations/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['event-registrations', eventId]);
+      setSelectedReg(null);
+      setDeleteRegId(null);
+      toast.success('Candidate registration removed');
+    },
+    onError: (err) => toast.error(err.message)
+  });
+
   const finalizeMutation = useMutation({
     mutationFn: (passed) => fetchClient(`/ujian/registrations/${selectedReg.id}/finalize`, {
       method: 'POST',
@@ -134,27 +147,27 @@ export default function JuryMarking() {
         <Card className="col-span-1">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <ClipboardList className="w-5 h-5" /> Candidates
-              </CardTitle>
-              <Button size="icon" variant="ghost" className="text-blue-600 h-8 w-8" onClick={() => setIsAddUserOpen(true)}>
-                <UserPlus className="w-4 h-4" />
-              </Button>
+               <CardTitle className="text-lg flex items-center gap-2">
+                 <ClipboardList className="w-5 h-5" /> Candidates
+               </CardTitle>
+               <Button size="icon" variant="ghost" className="text-blue-600 h-8 w-8" onClick={() => setIsAddUserOpen(true)}>
+                  <UserPlus className="w-4 h-4" />
+               </Button>
             </div>
             <CardDescription>Select a student to enter marks.</CardDescription>
           </CardHeader>
           <CardContent className="p-0 border-t">
             <div className="divide-y max-h-[600px] overflow-y-auto">
               {registrations?.map((reg) => (
-                <div
-                  key={reg.id}
+                <div 
+                  key={reg.id} 
                   className={cn(
-                    "p-4 cursor-pointer hover:bg-slate-50 transition-colors",
+                    "p-4 group cursor-pointer hover:bg-slate-50 transition-colors relative",
                     selectedReg?.id === reg.id && "bg-red-50 border-r-4 border-r-red-600"
                   )}
                   onClick={() => setSelectedReg(reg)}
                 >
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start pr-8">
                     <div>
                       <p className="font-bold text-sm">{reg.studentName}</p>
                       <p className="text-[10px] text-muted-foreground uppercase">{reg.bengkungName}</p>
@@ -163,6 +176,17 @@ export default function JuryMarking() {
                     {reg.status === 'Failed' && <Badge className="bg-rose-50 text-rose-700 text-[8px]">FAILED</Badge>}
                     {reg.status === 'Registered' && <Badge variant="outline" className="text-[8px]">PENDING</Badge>}
                   </div>
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="absolute right-2 top-4 h-7 w-7 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteRegId(reg.id);
+                    }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
               ))}
               {!registrations?.length && (
@@ -177,80 +201,80 @@ export default function JuryMarking() {
           {selectedReg ? (
             <Card className="border-t-4 border-t-red-700 h-full flex flex-col">
               <CardHeader className="pb-4 shrink-0">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-2xl font-black uppercase">{selectedReg.studentName}</CardTitle>
-                    <CardDescription>Examination for <span className="font-bold text-red-700">{selectedReg.bengkungName}</span></CardDescription>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Mark</p>
-                    <p className="text-2xl font-mono font-black text-red-700">{Object.values(marks).reduce((sum, m) => sum + (parseFloat(m.mark) || 0), 0).toFixed(1)}</p>
-                  </div>
-                </div>
+                 <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-2xl font-black uppercase">{selectedReg.studentName}</CardTitle>
+                      <CardDescription>Examination for <span className="font-bold text-red-700">{selectedReg.bengkungName}</span></CardDescription>
+                    </div>
+                    <div className="text-right">
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Mark</p>
+                       <p className="text-2xl font-mono font-black text-red-700">{Object.values(marks).reduce((sum, m) => sum + (parseFloat(m.mark) || 0), 0).toFixed(1)}</p>
+                    </div>
+                 </div>
               </CardHeader>
               <CardContent className="space-y-6 flex-1 overflow-y-auto min-h-0">
                 {loadingSheet ? (
                   <div className="flex py-20 justify-center"><Loader2 className="animate-spin text-red-600" /></div>
                 ) : (
                   <div className="space-y-3 pb-4">
-                    <div className="bg-amber-50 border border-amber-100 p-3 rounded-lg mb-4 flex items-start gap-3">
-                      <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-                      <p className="text-[11px] text-amber-800 leading-relaxed">
-                        Enter marks for each technical requirement below. Click <strong>Save Draft Marks</strong> to store your progress. You must click <strong>Pass</strong> or <strong>Fail</strong> to finalize the result and update the student's rank.
-                      </p>
-                    </div>
+                     <div className="bg-amber-50 border border-amber-100 p-3 rounded-lg mb-4 flex items-start gap-3">
+                        <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                        <p className="text-[11px] text-amber-800 leading-relaxed">
+                          Enter marks for each technical requirement below. Click <strong>Save Draft Marks</strong> to store your progress. You must click <strong>Pass</strong> or <strong>Fail</strong> to finalize the result and update the student's rank.
+                        </p>
+                     </div>
 
-                    {markingSheet?.syllabus?.map((item) => (
-                      <div key={item.id} className="p-3 rounded-lg border bg-white flex flex-col md:flex-row gap-4 items-start md:items-center hover:border-red-200 transition-colors shadow-sm">
-                        <div className="flex-1">
-                          <p className="text-xs font-black text-slate-900">{item.name}</p>
-                          <p className="text-[9px] text-muted-foreground uppercase font-mono">Requirement #{item.orderNo}</p>
-                        </div>
-                        <div className="flex gap-3 w-full md:w-auto">
-                          <div className="w-20">
-                            <Label className="text-[9px] uppercase font-bold text-slate-500 mb-1 block">Score</Label>
-                            <Input
-                              type="number"
-                              className="h-8 text-xs font-bold border-slate-200 focus:border-red-500 bg-slate-50/30"
-                              value={marks[item.id]?.mark ?? ''}
-                              onChange={(e) => handleMarkChange(item.id, 'mark', e.target.value)}
-                            />
+                     {markingSheet?.syllabus?.map((item) => (
+                       <div key={item.id} className="p-3 rounded-lg border bg-white flex flex-col md:flex-row gap-4 items-start md:items-center hover:border-red-200 transition-colors shadow-sm">
+                          <div className="flex-1">
+                             <p className="text-xs font-black text-slate-900">{item.name}</p>
+                             <p className="text-[9px] text-muted-foreground uppercase font-mono">Requirement #{item.orderNo}</p>
                           </div>
-                          <div className="flex-1 md:w-64">
-                            <Label className="text-[9px] uppercase font-bold text-slate-500 mb-1 block">Notes / Observation</Label>
-                            <Input
-                              className="h-8 text-xs border-slate-200 focus:border-red-500 bg-slate-50/30"
-                              value={marks[item.id]?.notes ?? ''}
-                              placeholder="Enter observations..."
-                              onChange={(e) => handleMarkChange(item.id, 'notes', e.target.value)}
-                            />
+                          <div className="flex gap-3 w-full md:w-auto">
+                             <div className="w-20">
+                                <Label className="text-[9px] uppercase font-bold text-slate-500 mb-1 block">Score</Label>
+                                <Input 
+                                  type="number" 
+                                  className="h-8 text-xs font-bold border-slate-200 focus:border-red-500 bg-slate-50/30" 
+                                  value={marks[item.id]?.mark ?? ''} 
+                                  onChange={(e) => handleMarkChange(item.id, 'mark', e.target.value)}
+                                />
+                             </div>
+                             <div className="flex-1 md:w-64">
+                                <Label className="text-[9px] uppercase font-bold text-slate-500 mb-1 block">Notes / Observation</Label>
+                                <Input 
+                                  className="h-8 text-xs border-slate-200 focus:border-red-500 bg-slate-50/30" 
+                                  value={marks[item.id]?.notes ?? ''} 
+                                  placeholder="Enter observations..."
+                                  onChange={(e) => handleMarkChange(item.id, 'notes', e.target.value)}
+                                />
+                             </div>
                           </div>
-                        </div>
-                      </div>
-                    ))}
+                       </div>
+                     ))}
 
-                    {!markingSheet?.syllabus?.length && (
-                      <div className="p-12 text-center border border-dashed rounded-xl text-muted-foreground text-xs italic">
-                        No silibus items defined for this bengkung level.
-                      </div>
-                    )}
+                     {!markingSheet?.syllabus?.length && (
+                       <div className="p-12 text-center border border-dashed rounded-xl text-muted-foreground text-xs italic">
+                         No silibus items defined for this bengkung level.
+                       </div>
+                     )}
                   </div>
                 )}
               </CardContent>
               <CardFooter className="flex flex-col sm:flex-row gap-4 pt-6 border-t bg-slate-50/50 shrink-0">
-                <Button className="w-full sm:w-auto" variant="outline" onClick={handleSaveMarks} disabled={saveMarksMutation.isPending || !selectedReg}>
-                  {saveMarksMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                  Save Draft Marks
-                </Button>
-                <div className="flex-1" />
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <Button variant="outline" className="flex-1 sm:flex-none border-rose-200 text-rose-700 hover:bg-rose-50 font-bold" onClick={() => finalizeMutation.mutate(false)} disabled={finalizeMutation.isPending}>
-                    <XCircle className="w-4 h-4 mr-2" /> Fail
-                  </Button>
-                  <Button className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 font-bold" onClick={() => finalizeMutation.mutate(true)} disabled={finalizeMutation.isPending}>
-                    <CheckCircle className="w-4 h-4 mr-2" /> Pass Candidate
-                  </Button>
-                </div>
+                 <Button className="w-full sm:w-auto" variant="outline" onClick={handleSaveMarks} disabled={saveMarksMutation.isPending || !selectedReg}>
+                   {saveMarksMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                   Save Draft Marks
+                 </Button>
+                 <div className="flex-1" />
+                 <div className="flex gap-2 w-full sm:w-auto">
+                    <Button variant="outline" className="flex-1 sm:flex-none border-rose-200 text-rose-700 hover:bg-rose-50 font-bold" onClick={() => finalizeMutation.mutate(false)} disabled={finalizeMutation.isPending}>
+                       <XCircle className="w-4 h-4 mr-2" /> Fail
+                    </Button>
+                    <Button className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 font-bold" onClick={() => finalizeMutation.mutate(true)} disabled={finalizeMutation.isPending}>
+                       <CheckCircle className="w-4 h-4 mr-2" /> Pass Candidate
+                    </Button>
+                 </div>
               </CardFooter>
             </Card>
           ) : (
@@ -267,54 +291,51 @@ export default function JuryMarking() {
 
       {/* Manual Registration Dialog */}
       <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Candidate Manually</DialogTitle>
-            <DialogDescription>Search for a student to register for this exam event.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-1">
-              <Label className="text-xs font-bold">Search Student</Label>
-              <UserLookup
-                onChange={(uid) => {
-                  if (uid && selectedBeltId) {
-                    registerManualMutation.mutate({ userId: uid, targetBengkungId: selectedBeltId });
-                  } else if (uid) {
-                    // User selected but belt not yet
-                    const tempUser = { id: uid };
-                    setStagedUser(tempUser);
-                  }
-                }}
-                placeholder="Search by name, IC or phone..."
-              />
+         <DialogContent>
+            <DialogHeader>
+               <DialogTitle>Add Candidate Manually</DialogTitle>
+               <DialogDescription>Search for a student to register for this exam event.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+               <div className="space-y-1">
+                  <Label className="text-xs font-bold">Search Student</Label>
+                  <UserLookup 
+                    onChange={(uid) => {
+                      if (uid && selectedBeltId) {
+                        registerManualMutation.mutate({ userId: uid, targetBengkungId: selectedBeltId });
+                      }
+                    }}
+                    placeholder="Search by name, IC or phone..."
+                  />
+               </div>
+               <div className="space-y-1">
+                  <Label className="text-xs font-bold">Target Bengkung</Label>
+                  <select 
+                    className="w-full bg-white border border-slate-200 rounded-md h-10 px-3 text-sm"
+                    value={selectedBeltId}
+                    onChange={(e) => setSelectedBeltId(e.target.value)}
+                  >
+                     <option value="">Select Target Belt...</option>
+                     {bengkungs?.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+               </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs font-bold">Target Bengkung</Label>
-              <select
-                className="w-full bg-white border border-slate-200 rounded-md h-10 px-3 text-sm"
-                value={selectedBeltId}
-                onChange={(e) => setSelectedBeltId(e.target.value)}
-              >
-                <option value="">Select Target Belt...</option>
-                {bengkungs?.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsAddUserOpen(false)}>Cancel</Button>
-            <Button
-              className="bg-blue-600"
-              disabled={!selectedBeltId || registerManualMutation.isPending}
-              onClick={() => {
-                // Since UserLookup might be used without auto-submitting
-                toast.info("Please select a student from the lookup above");
-              }}
-            >
-              Add to Event
-            </Button>
-          </DialogFooter>
-        </DialogContent>
+            <DialogFooter>
+               <Button variant="ghost" onClick={() => setIsAddUserOpen(false)}>Cancel</Button>
+            </DialogFooter>
+         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog 
+        isOpen={!!deleteRegId}
+        onClose={() => setDeleteRegId(null)}
+        onConfirm={() => deleteRegMutation.mutate(deleteRegId)}
+        title="Remove Candidate"
+        description="Are you sure you want to remove this candidate from the exam? Their marks will also be deleted."
+        isLoading={deleteRegMutation.isPending}
+        confirmText="Remove"
+        variant="destructive"
+      />
     </div>
   );
 }
