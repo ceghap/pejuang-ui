@@ -279,7 +279,7 @@ export default function GelanggangDetail() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {upcomingEvents?.filter(e => e.status === 'Scheduled').map(event => (
+                    {upcomingEvents?.filter(e => e.status === 'Scheduled' || e.status === 'Ongoing').map(event => (
                       <Card key={event.id} className="border-slate-200 hover:border-red-200 transition-colors cursor-pointer" onClick={() => setSelectedEventForReg(event)}>
                         <CardHeader className="p-4 pb-2">
                           <CardTitle className="text-sm">{event.title}</CardTitle>
@@ -317,8 +317,8 @@ export default function GelanggangDetail() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Student</TableHead>
+                          <TableHead>Event</TableHead>
                           <TableHead>Target Bengkung</TableHead>
-                          <TableHead>Date</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="text-right">Marks</TableHead>
                         </TableRow>
@@ -327,10 +327,13 @@ export default function GelanggangDetail() {
                         {ujianResults?.map((res) => (
                           <TableRow key={res.id}>
                             <TableCell className="font-medium text-xs">{res.studentName}</TableCell>
-                            <TableCell className="text-xs">{res.bengkungName}</TableCell>
-                            <TableCell className="text-[10px] text-muted-foreground">
-                               {formatDate(res.eventDate)}
+                            <TableCell>
+                               <div className="flex flex-col">
+                                  <span className="text-[11px] font-bold">{res.eventTitle}</span>
+                                  <span className="text-[9px] text-muted-foreground">{formatDate(res.eventDate)}</span>
+                               </div>
                             </TableCell>
+                            <TableCell className="text-xs">{res.bengkungName}</TableCell>
                             <TableCell>
                               {res.status === 'Passed' ? (
                                 <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border-emerald-100 text-[9px] uppercase">Passed</Badge>

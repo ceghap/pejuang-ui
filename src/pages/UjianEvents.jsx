@@ -1,19 +1,19 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from '@tanstack/react-form';
-import { Calendar as CalendarIcon, MapPin, Plus, Loader2, ClipboardCheck, Users, Search } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Plus, Loader2, ClipboardCheck, Users, Search, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
 } from '@/components/ui/table';
 import {
   Dialog,
@@ -42,21 +42,29 @@ const formatDate = (dateStr) => {
 export default function UjianEvents() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [isPickingDate, setIsPickingDate] = useState(false);
 
   const { data: events, isLoading } = useQuery({
     queryKey: ['ujian-events'],
     queryFn: () => fetchClient('/ujian-events'),
   });
 
-  const createMutation = useMutation({
-    mutationFn: (newEvent) => fetchClient('/ujian-events', {
-      method: 'POST',
-      body: JSON.stringify(newEvent),
-    }),
+  const mutation = useMutation({
+    mutationFn: (eventData) => {
+      const method = editingEvent ? 'PUT' : 'POST';
+      const url = editingEvent ? `/ujian-events/${editingEvent.id}` : '/ujian-events';
+      return fetchClient(url, {
+        method,
+        body: JSON.stringify(eventData),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['ujian-events']);
       setIsDialogOpen(false);
-      toast.success('Ujian Event scheduled successfully');
+      setEditingEvent(null);
+      setIsPickingDate(false);
+      toast.success(`Ujian Event ${editingEvent ? 'updated' : 'scheduled'} successfully`);
     },
     onError: (error) => toast.error(error.message)
   });
@@ -65,12 +73,31 @@ export default function UjianEvents() {
     defaultValues: {
       title: '',
       location: '',
-      date: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+      date: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
+      status: 'Scheduled'
     },
     onSubmit: async ({ value }) => {
-      createMutation.mutate(value);
+      mutation.mutate(value);
     },
   });
+
+  const handleEdit = (event) => {
+    setEditingEvent(event);
+    form.setFieldValue('title', event.title);
+    form.setFieldValue('location', event.location);
+    const localDate = new Date(new Date(event.date).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    form.setFieldValue('date', localDate);
+    form.setFieldValue('status', event.status);
+    setIsPickingDate(false);
+    setIsDialogOpen(true);
+  };
+
+  const handleAddNew = () => {
+    setEditingEvent(null);
+    form.reset();
+    setIsPickingDate(false);
+    setIsDialogOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -87,7 +114,7 @@ export default function UjianEvents() {
           <h1 className="text-3xl font-bold tracking-tight text-red-900">Ujian Events</h1>
           <p className="text-muted-foreground mt-1">Schedule and manage belt examination sessions (Ujian Bengkung).</p>
         </div>
-        <Button onClick={() => { form.reset(); setIsDialogOpen(true); }} className="bg-red-700 hover:bg-red-800">
+        <Button onClick={handleAddNew} className="bg-red-700 hover:bg-red-800">
           <Plus className="mr-2 h-4 w-4" /> Schedule New Ujian
         </Button>
       </div>
@@ -132,17 +159,22 @@ export default function UjianEvents() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={event.status === 'Scheduled' ? 'secondary' : 'default'}
-                      className={cn(
-                        "text-[10px] uppercase",
-                        event.status === 'Scheduled' && "bg-blue-50 text-blue-700 border-blue-100",
-                        event.status === 'Completed' && "bg-emerald-50 text-emerald-700 border-emerald-100"
-                      )}>
+                    <Badge variant={event.status === 'Scheduled' ? 'secondary' : 'default'} 
+                           className={cn(
+                             "text-[10px] uppercase",
+                             event.status === 'Scheduled' && "bg-blue-50 text-blue-700 border-blue-100",
+                             event.status === 'Ongoing' && "bg-amber-50 text-amber-700 border-amber-100",
+                             event.status === 'Completed' && "bg-emerald-50 text-emerald-700 border-emerald-100",
+                             event.status === 'Cancelled' && "bg-slate-50 text-slate-500 border-slate-100"
+                           )}>
                       {event.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(event)}>
+                         <Pencil className="w-3.5 h-3.5" />
+                      </Button>
                       <Button variant="outline" size="sm" asChild>
                         <Link to={`/ujian-events/${event.id}/markings`}>
                           <ClipboardCheck className="w-3.5 h-3.5 mr-1" /> Markings
@@ -164,11 +196,11 @@ export default function UjianEvents() {
         </CardContent>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if(!open) { setEditingEvent(null); setIsPickingDate(false); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Schedule Ujian Event</DialogTitle>
-            <DialogDescription>Create a new examination session for members.</DialogDescription>
+            <DialogTitle>{editingEvent ? 'Edit Ujian Event' : 'Schedule Ujian Event'}</DialogTitle>
+            <DialogDescription>{editingEvent ? 'Modify the details of this examination session.' : 'Create a new examination session for members.'}</DialogDescription>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }} className="space-y-4 pt-4">
             <form.Field name="title" children={(field) => (
@@ -183,15 +215,95 @@ export default function UjianEvents() {
                 <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} placeholder="e.g. Gelanggang Pusat HQ" required />
               </div>
             )} />
-            <form.Field name="date" children={(field) => (
-              <div className="space-y-2">
-                <Label>Date & Time</Label>
-                <Input type="datetime-local" value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} required />
-              </div>
-            )} />
+            <form.Field name="date" children={(field) => {
+              // Split the ISO string into date and time parts
+              const [datePart, timePart] = field.state.value.split('T');
+
+              const handleDateChange = (val) => {
+                field.handleChange(`${val}T${timePart || '09:00'}`);
+                document.getElementById('time-picker')?.focus();
+              };
+
+              const handleTimeChange = (val) => {
+                field.handleChange(`${datePart}T${val}`);
+                setIsPickingDate(false);
+              };
+              
+              return (
+                <div className="space-y-2">
+                  <Label>Date & Time</Label>
+                  {!isPickingDate ? (
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="w-full justify-start font-bold border-slate-200"
+                      onClick={() => setIsPickingDate(true)}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 text-red-600" />
+                      {formatDate(field.state.value)}
+                    </Button>
+                  ) : (
+                    <div className="p-3 border-2 border-red-100 rounded-lg bg-red-50/30 space-y-3 animate-in fade-in zoom-in duration-200">
+                       <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-[10px] uppercase font-bold text-slate-500">1. Pick Date</Label>
+                            <Input 
+                              type="date" 
+                              autoFocus
+                              className="bg-white"
+                              value={datePart} 
+                              onChange={(e) => handleDateChange(e.target.value)} 
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] uppercase font-bold text-slate-500">2. Set Time</Label>
+                            <Input 
+                              id="time-picker"
+                              type="time" 
+                              className="bg-white"
+                              value={timePart} 
+                              onChange={(e) => handleTimeChange(e.target.value)} 
+                            />
+                          </div>
+                       </div>
+                       <div className="flex justify-between items-center pt-1">
+                          <p className="text-[10px] text-slate-400 italic">Selection will auto-confirm on time change</p>
+                          <Button 
+                            type="button" 
+                            variant="ghost"
+                            className="h-7 text-[10px] font-bold uppercase tracking-tight"
+                            onClick={() => setIsPickingDate(false)}
+                          >
+                            Cancel
+                          </Button>
+                       </div>
+                    </div>
+                  )}
+                </div>
+              );
+            }} />
+            {editingEvent && (
+              <form.Field name="status" children={(field) => (
+                <div className="space-y-2">
+                  <Label>Event Status</Label>
+                  <select 
+                    className="w-full bg-white border border-slate-200 rounded-md h-10 px-3 text-sm focus:ring-2 focus:ring-red-500/20"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                  >
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="Ongoing">Ongoing</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </div>
+              )} />
+            )}
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={createMutation.isPending} className="bg-red-700">Schedule Ujian</Button>
+              <Button type="submit" disabled={mutation.isPending} className="bg-red-700">
+                {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : editingEvent ? 'Save Changes' : 'Schedule Event'}
+              </Button>
             </div>
           </form>
         </DialogContent>
