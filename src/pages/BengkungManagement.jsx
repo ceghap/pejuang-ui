@@ -23,7 +23,7 @@ import { useNavigate } from 'react-router-dom';
 
 // DnD Kit Imports
 import {
-  DndContext,
+  DndContext, 
   closestCenter,
   PointerSensor,
   useSensor,
@@ -55,8 +55,8 @@ function SortableSilibusItem({ s, onEdit, onDelete }) {
   };
 
   return (
-    <div
-      ref={setNodeRef}
+    <div 
+      ref={setNodeRef} 
       style={style}
       className={cn(
         "group flex items-center justify-between px-3 py-2 rounded-lg border bg-white hover:border-slate-300 transition-colors shadow-sm mb-2",
@@ -68,8 +68,8 @@ function SortableSilibusItem({ s, onEdit, onDelete }) {
           <GripVertical className="w-4 h-4" />
         </div>
         <div className="flex flex-col">
-          <span className="text-xs font-bold text-slate-700">{s.name}</span>
-          <span className="text-[9px] text-slate-400 uppercase font-mono tracking-tight">Order #{s.orderNo}</span>
+           <span className="text-xs font-bold text-slate-700">{s.name}</span>
+           <span className="text-[9px] text-slate-400 uppercase font-mono tracking-tight">Order #{s.orderNo}</span>
         </div>
       </div>
       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -159,7 +159,7 @@ export default function BengkungManagement() {
   });
 
   const bengkungForm = useForm({
-    defaultValues: { name: '', levelOrder: 0, description: '' },
+    defaultValues: { name: '', levelOrder: 0, description: '', minMarkToPass: 50.0 },
     onSubmit: async ({ value }) => {
       bengkungMutation.mutate(editingBengkung ? { ...value, id: editingBengkung.id } : value);
     },
@@ -169,15 +169,15 @@ export default function BengkungManagement() {
     defaultValues: { name: '' },
     onSubmit: async ({ value }) => {
       let finalOrderNo = editingSilibus?.orderNo || 1;
-
+      
       if (!editingSilibus) {
         const currentSilibus = selectedBengkung.syllabus || [];
         const maxOrder = currentSilibus.reduce((max, item) => Math.max(max, item.orderNo), 0);
         finalOrderNo = maxOrder + 1;
       }
 
-      silibusMutation.mutate(editingSilibus
-        ? { ...value, id: editingSilibus.id, orderNo: finalOrderNo }
+      silibusMutation.mutate(editingSilibus 
+        ? { ...value, id: editingSilibus.id, orderNo: finalOrderNo } 
         : { ...value, bengkungId: selectedBengkung.id, orderNo: finalOrderNo }
       );
       toast.success('Silibus saved');
@@ -189,6 +189,7 @@ export default function BengkungManagement() {
     bengkungForm.setFieldValue('name', b.name);
     bengkungForm.setFieldValue('levelOrder', b.levelOrder);
     bengkungForm.setFieldValue('description', b.description || '');
+    bengkungForm.setFieldValue('minMarkToPass', b.minMarkToPass || 50.0);
     setIsBengkungDialogOpen(true);
   };
 
@@ -214,9 +215,9 @@ export default function BengkungManagement() {
     const newIndex = bengkung.syllabus.findIndex(item => item.id === over.id);
 
     const reorderedSilibus = arrayMove(bengkung.syllabus, oldIndex, newIndex);
-
+    
     // Optimistically update query client
-    queryClient.setQueryData(['bengkungs'], (old) =>
+    queryClient.setQueryData(['bengkungs'], (old) => 
       old.map(b => b.id === bengkung.id ? { ...b, syllabus: reorderedSilibus } : b)
     );
 
@@ -238,66 +239,67 @@ export default function BengkungManagement() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-6 space-y-6 max-w-7xl mx-auto pb-24">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Bengkung & Silibus</h1>
-          <p className="text-muted-foreground text-sm">Urus level bengkung dan keperluan teknikal.</p>
+          <h1 className="text-2xl md:text-3xl font-light tracking-tight italic">Bengkung <span className="font-semibold uppercase not-italic">& Silibus</span></h1>
+          <p className="text-muted-foreground text-sm mt-1 uppercase tracking-widest font-medium opacity-70">Manage belt ranks and technical technical silibus.</p>
         </div>
-        <Button onClick={() => { setEditingBengkung(null); bengkungForm.reset(); setIsBengkungDialogOpen(true); }}>
+        <Button onClick={() => { setEditingBengkung(null); bengkungForm.reset(); setIsBengkungDialogOpen(true); }} className="shadow-lg shadow-primary/10">
           <Plus className="mr-2 h-4 w-4" /> Add Bengkung
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {bengkungs?.map((b) => (
-          <Card key={b.id} className="flex flex-col">
-            <CardHeader className="pb-4">
+          <Card key={b.id} className="flex flex-col border-border/50 shadow-sm hover:shadow-md transition-all">
+            <CardHeader className="pb-4 bg-muted/20 border-b">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex flex-col">
-                    <CardTitle className="text-lg font-bold">{b.name}</CardTitle>
+                    <CardTitle className="text-lg font-black uppercase text-slate-900 leading-tight italic">{b.name}</CardTitle>
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="secondary" className="text-[10px] font-bold uppercase">Order {b.levelOrder}</Badge>
+                       <Badge variant="secondary" className="text-[9px] font-black uppercase tracking-tighter">Order {b.levelOrder}</Badge>
+                       <Badge variant="outline" className="text-[9px] font-black uppercase tracking-tighter bg-white border-emerald-100 text-emerald-600">Pass: {b.minMarkToPass}%</Badge>
                     </div>
                   </div>
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditBengkung(b)}>
-                    <Pencil className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600 rounded-full" onClick={() => handleEditBengkung(b)}>
+                    <Pencil className="h-3.5 w-3.5" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500" onClick={() => setDeleteBengkungId(b.id)}>
-                    <Trash2 className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-rose-500 rounded-full" onClick={() => setDeleteBengkungId(b.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
-              {b.description && <p className="text-xs text-muted-foreground mt-2 line-clamp-2 italic">{b.description}</p>}
+              {b.description && <p className="text-[11px] text-slate-500 mt-2 line-clamp-2 italic font-medium">"{b.description}"</p>}
             </CardHeader>
-            <CardContent className="pt-4 border-t flex-1">
+            <CardContent className="pt-4 flex-1">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                    <ListChecks className="w-3 h-3" /> Technical Silibus
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    <ListChecks className="w-3.5 h-3.5" /> Silibus Requirements
                   </h4>
-                  <Button variant="ghost" size="sm" className="h-7 text-[10px] uppercase font-bold text-blue-600" onClick={() => handleAddSilibus(b)}>
+                  <Button variant="ghost" size="sm" className="h-6 text-[9px] uppercase font-black text-blue-600 hover:bg-blue-50" onClick={() => handleAddSilibus(b)}>
                     <Plus className="w-3 h-3 mr-1" /> Add
                   </Button>
                 </div>
 
                 <div>
-                  <DndContext
+                  <DndContext 
                     sensors={sensors}
                     collisionDetection={closestCenter}
                     onDragEnd={(e) => handleDragEnd(e, b)}
                   >
-                    <SortableContext
+                    <SortableContext 
                       items={b.syllabus?.map(s => s.id) || []}
                       strategy={verticalListSortingStrategy}
                     >
                       {b.syllabus?.sort((a, b) => a.orderNo - b.orderNo).map((s) => (
-                        <SortableSilibusItem
-                          key={s.id}
-                          s={s}
+                        <SortableSilibusItem 
+                          key={s.id} 
+                          s={s} 
                           onEdit={(item) => handleEditSilibus(b, item)}
                           onDelete={(id) => setDeleteSilibusId(id)}
                         />
@@ -305,8 +307,8 @@ export default function BengkungManagement() {
                     </SortableContext>
                   </DndContext>
                   {!b.syllabus?.length && (
-                    <div className="py-8 text-center text-[10px] text-muted-foreground uppercase tracking-widest italic bg-slate-50 border border-dashed rounded-lg">
-                      No silibus defined.
+                    <div className="py-12 text-center text-[10px] font-black uppercase text-slate-300 tracking-[0.2em] italic bg-slate-50/50 border border-dashed rounded-xl">
+                      No silibus defined
                     </div>
                   )}
                 </div>
@@ -318,32 +320,42 @@ export default function BengkungManagement() {
 
       {/* Bengkung Dialog */}
       <Dialog open={isBengkungDialogOpen} onOpenChange={setIsBengkungDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingBengkung ? 'Edit Bengkung' : 'Add Bengkung'}</DialogTitle>
+        <DialogContent className="rounded-2xl border-slate-200">
+          <DialogHeader className="pb-4 border-b">
+            <DialogTitle className="font-black uppercase tracking-tight italic text-slate-900">{editingBengkung ? 'Edit Bengkung' : 'New Bengkung'}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); bengkungForm.handleSubmit(); }} className="space-y-4 pt-4">
+          <form onSubmit={(e) => { e.preventDefault(); bengkungForm.handleSubmit(); }} className="space-y-4 pt-6">
             <bengkungForm.Field name="name" children={(field) => (
-              <div className="space-y-2">
-                <Label>Bengkung Name</Label>
-                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} placeholder="e.g. CKPB1" required />
+              <div className="space-y-1">
+                <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Rank Name</Label>
+                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} placeholder="e.g. CKPB1" className="h-10 font-bold" required />
               </div>
             )} />
-            <bengkungForm.Field name="levelOrder" children={(field) => (
-              <div className="space-y-2">
-                <Label>Level Order (0, 1, 2...)</Label>
-                <Input type="number" value={field.state.value} onChange={(e) => field.handleChange(parseInt(e.target.value))} required />
-              </div>
-            )} />
+            
+            <div className="grid grid-cols-2 gap-4">
+               <bengkungForm.Field name="levelOrder" children={(field) => (
+                 <div className="space-y-1">
+                   <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Sequence Order</Label>
+                   <Input type="number" value={field.state.value} onChange={(e) => field.handleChange(parseInt(e.target.value))} required className="h-10 font-bold" />
+                 </div>
+               )} />
+               <bengkungForm.Field name="minMarkToPass" children={(field) => (
+                 <div className="space-y-1">
+                   <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Min. Pass Mark %</Label>
+                   <Input type="number" step="0.1" value={field.state.value} onChange={(e) => field.handleChange(parseFloat(e.target.value))} required className="h-10 font-bold text-emerald-600" />
+                 </div>
+               )} />
+            </div>
+
             <bengkungForm.Field name="description" children={(field) => (
-              <div className="space-y-2">
-                <Label>Description</Label>
-                <Textarea value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} rows={3} />
+              <div className="space-y-1">
+                <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Description</Label>
+                <Textarea value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} rows={2} className="resize-none" />
               </div>
             )} />
             <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button type="button" variant="ghost" onClick={() => setIsBengkungDialogOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={bengkungMutation.isPending}>Save Bengkung</Button>
+              <Button type="button" variant="ghost" onClick={() => setIsBengkungDialogOpen(false)} className="uppercase text-[10px] font-black tracking-widest">Cancel</Button>
+              <Button type="submit" disabled={bengkungMutation.isPending} className="uppercase text-[10px] font-black tracking-widest px-8">Save Rank</Button>
             </div>
           </form>
         </DialogContent>
@@ -351,21 +363,21 @@ export default function BengkungManagement() {
 
       {/* Silibus Dialog */}
       <Dialog open={isSilibusDialogOpen} onOpenChange={setIsSilibusDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingSilibus ? 'Edit Silibus' : 'Add Silibus'}</DialogTitle>
-            <DialogDescription className="text-xs uppercase tracking-tight">{selectedBengkung?.name}</DialogDescription>
+        <DialogContent className="rounded-2xl border-slate-200">
+          <DialogHeader className="pb-4 border-b">
+            <DialogTitle className="font-black uppercase tracking-tight italic text-slate-900">{editingSilibus ? 'Edit Requirement' : 'Add Requirement'}</DialogTitle>
+            <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-blue-600">{selectedBengkung?.name}</DialogDescription>
           </DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); silibusForm.handleSubmit(); }} className="space-y-4 pt-4">
+          <form onSubmit={(e) => { e.preventDefault(); silibusForm.handleSubmit(); }} className="space-y-5 pt-6">
             <silibusForm.Field name="name" children={(field) => (
-              <div className="space-y-2">
-                <Label>Requirement Name</Label>
-                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} placeholder="e.g. Senaman Tua" required />
+              <div className="space-y-1">
+                <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Requirement Name</Label>
+                <Input value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} placeholder="e.g. Senaman Tua" className="h-10 font-bold" required />
               </div>
             )} />
             <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button type="button" variant="ghost" onClick={() => setIsSilibusDialogOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={silibusMutation.isPending}>Save Item</Button>
+              <Button type="button" variant="ghost" onClick={() => setIsSilibusDialogOpen(false)} className="uppercase text-[10px] font-black tracking-widest">Cancel</Button>
+              <Button type="submit" disabled={silibusMutation.isPending} className="uppercase text-[10px] font-black tracking-widest px-8">Save Item</Button>
             </div>
           </form>
         </DialogContent>

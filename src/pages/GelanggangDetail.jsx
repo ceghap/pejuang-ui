@@ -267,9 +267,9 @@ export default function GelanggangDetail() {
         {/* Content Tabs */}
         <div className="lg:col-span-3 space-y-6">
           <div className="flex gap-2 p-1 bg-slate-100/80 rounded-xl w-fit border border-slate-200">
-            <Button
-              variant="ghost"
-              size="sm"
+            <Button 
+              variant="ghost" 
+              size="sm" 
               onClick={() => setActiveTab('members')}
               className={cn(
                 "rounded-lg px-6 font-bold text-xs uppercase tracking-widest transition-all",
@@ -278,20 +278,24 @@ export default function GelanggangDetail() {
             >
               <Users className="w-3.5 h-3.5 mr-2" /> Members
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setActiveTab('grading')}
-              className={cn(
-                "rounded-lg px-6 font-bold text-xs uppercase tracking-widest transition-all",
-                activeTab === 'grading' ? "bg-white text-rose-600 shadow-sm" : "text-slate-500"
-              )}
-            >
-              <GraduationCap className="w-3.5 h-3.5 mr-2" /> Ujian & Grading
-            </Button>
-          </div>
 
-          {activeTab === 'members' ? (
+            {canManage && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setActiveTab('grading')}
+                className={cn(
+                  "rounded-lg px-6 font-bold text-xs uppercase tracking-widest transition-all",
+                  activeTab === 'grading' ? "bg-white text-rose-600 shadow-sm" : "text-slate-500"
+                )}
+              >
+                <GraduationCap className="w-3.5 h-3.5 mr-2" /> Ujian & Grading
+              </Button>
+            )}
+            </div>
+
+            {activeTab === 'members' || !canManage ? (
+
             <Card className="overflow-hidden border-border/50 border-t-4 border-t-blue-600 shadow-sm">
               <CardHeader className="pb-3 border-b bg-muted/20">
                 <div className="flex items-center justify-between">
