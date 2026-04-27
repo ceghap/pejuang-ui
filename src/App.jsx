@@ -65,9 +65,9 @@ const AdminRoute = () => {
 };
 
 const PasswordChangeRoute = () => {
-  const { requiresPasswordChange } = useAuthStore();
-  // Only accessible if flagged by the 403 interceptor
-  if (!requiresPasswordChange) return <Navigate to="/login" replace />;
+  const { requiresPasswordChange, isAuthenticated } = useAuthStore();
+  // Accessible if forced (requiresPasswordChange) OR if already logged in (isAuthenticated)
+  if (!requiresPasswordChange && !isAuthenticated) return <Navigate to="/login" replace />;
   return <Outlet />;
 };
 

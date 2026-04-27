@@ -7,20 +7,22 @@ import { useAuthStore } from '@/store/authStore';
 import {
   ArrowLeft, Save, User as UserIcon, Shield, Sword,
   Users, CreditCard, Heart, Loader2, Plus, Link as LinkIcon,
-  Trash2, Edit3, UserCheck
+  Trash2, Edit3, UserCheck, ShieldAlert, KeyRound, XCircle
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UserLookup } from '@/components/ui/user-lookup';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter
 } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 export default function UserDetail() {
@@ -33,16 +35,19 @@ export default function UserDetail() {
   const [isAddMembershipOpen, setIsAddMembershipOpen] = useState(false);
   const [isLinkDownlineOpen, setIsLinkDownlineOpen] = useState(false);
   const [isChangeUplineOpen, setIsChangeUplineOpen] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [resetData, setResetData] = useState(null); // For showing temp password
 
-  // Local Staging States (for saving all at once)
+  // Selection Tracking for Network
+  const [addedDownlines, setAddedDownlines] = useState([]);
+  const [removedDownlineIds, setRemovedDownlineIds] = useState(new Set());
   const [stagedUpline, setStagedUpline] = useState(null);
   const [stagedDownlines, setStagedDownlines] = useState([]);
-  const [removedDownlineIds, setRemovedDownlineIds] = useState(new Set());
-  const [addedDownlines, setAddedDownlines] = useState([]);
 
   const { data: user, isLoading, error } = useQuery({
     queryKey: ['user', id],
     queryFn: () => fetchClient(`/users/${id}`),
+    enabled: !!id
   });
 
   const { data: initialDownlines } = useQuery({
@@ -117,6 +122,19 @@ export default function UserDetail() {
     onError: (err) => {
       console.error("Save Error:", err);
       toast.error(err.message || "Failed to save changes");
+    }
+  });
+
+  const resetMutation = useMutation({
+    mutationFn: () => fetchClient(`/users/${id}/reset-password`, { method: 'POST' }),
+    onSuccess: (data) => {
+       setIsResetConfirmOpen(false);
+       setResetData(data);
+       toast.success("Password reset successful");
+    },
+    onError: (err) => {
+       setIsResetConfirmOpen(false);
+       toast.error(err.message);
     }
   });
 
@@ -247,6 +265,17 @@ export default function UserDetail() {
           {(saveAllMutation.isPending || addedDownlines.length > 0 || removedDownlineIds.size > 0 || form.state.isDirty || stagedUpline?.id !== user.upline?.id) && (
             <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest animate-pulse mr-2">Unsaved Changes</p>
           )}
+          
+          <Button
+            variant="outline"
+            onClick={() => setIsResetConfirmOpen(true)}
+            disabled={resetMutation.isPending}
+            className="h-12 px-4 rounded-xl border-slate-200 text-rose-600 bg-rose-50/30 hover:bg-rose-50 shadow-sm transition-all flex items-center gap-2"
+          >
+             {resetMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+             <span className="text-[10px] font-black uppercase tracking-widest">Reset Pass</span>
+          </Button>
+
           <Button
             onClick={() => form.handleSubmit()}
             disabled={saveAllMutation.isPending}
@@ -511,7 +540,7 @@ export default function UserDetail() {
               <form.Field name="profile.nextOfKinPhone" children={(field) => (
                 <div className="space-y-1">
                   <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Phone</Label>
-                  <Input {...field.state} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} className="bg-slate-50 font-mono" />
+                  <Input {...field.state} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} className="bg-slate-50 border-slate-200 font-mono text-sm" />
                 </div>
               )} />
               <form.Field name="profile.nextOfKinRelation" children={(field) => (
@@ -585,51 +614,43 @@ export default function UserDetail() {
                   <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-black text-[10px]">
                     {stagedUpline.name.substring(0, 2).toUpperCase()}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-xs uppercase truncate text-slate-800">{stagedUpline.name}</p>
-                    <p className="text-[10px] font-mono text-slate-400 text-blue-600 font-bold">Introducer</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-900 truncate">{stagedUpline.name}</p>
+                    <p className="text-[10px] text-slate-400 font-mono">UPLINE</p>
                   </div>
-                  {stagedUpline.id !== user?.upline?.id && <Badge variant="outline" className="text-[8px] bg-white text-orange-600 border-orange-200">PENDING</Badge>}
+                  <Button onClick={() => setStagedUpline(null)} variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-rose-500">
+                    <XCircle className="w-4 h-4" />
+                  </Button>
                 </div>
               ) : (
-                <div className="p-3 border border-dashed border-slate-200 rounded-lg text-center">
-                  <p className="text-[10px] text-slate-400 uppercase font-bold italic">No Introducer Assigned</p>
+                <div className="p-4 border border-dashed rounded-lg text-center bg-slate-50/30">
+                  <p className="text-[10px] font-black uppercase text-slate-300 tracking-widest">No introducer linked</p>
                 </div>
               )}
             </div>
 
             {/* Downlines Section */}
-            <div className="space-y-3 pt-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-[10px] uppercase font-black tracking-widest text-slate-400">Anak Murid (Direct Downlines)</Label>
-                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{stagedDownlines.length}</span>
-              </div>
-              <div className="space-y-1 max-h-64 overflow-y-auto pr-1">
+            <div className="space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Directed Members (Downlines)</p>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
                 {stagedDownlines.length > 0 ? (
                   stagedDownlines.map(d => (
-                    <div key={d.id} className={cn(
-                      "p-2.5 rounded-lg border flex justify-between items-center group transition-all",
-                      addedDownlines.some(ad => ad.id === d.id) ? "border-emerald-100 bg-emerald-50/30" : "border-slate-100 bg-white"
-                    )}>
-                      <div className="min-w-0">
-                        <p className="font-bold text-[10px] uppercase text-slate-700 truncate">{d.name}</p>
-                        <p className="text-[9px] font-mono text-slate-400">{d.phoneNumber}</p>
+                    <div key={d.id} className="p-3 border border-slate-100 rounded-lg flex items-center gap-3 bg-white shadow-sm group">
+                      <div className="h-7 w-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-black text-[9px]">
+                        {d.name.substring(0, 2).toUpperCase()}
                       </div>
-                      <div className="flex items-center gap-2">
-                        {addedDownlines.some(ad => ad.id === d.id) && <Badge className="text-[7px] bg-emerald-500 text-white border-none h-4 px-1">NEW</Badge>}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveDownline(d)}
-                          className="h-6 w-6 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-full"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-700 truncate">{d.name}</p>
                       </div>
+                      <Button onClick={() => handleRemoveDownline(d)} variant="ghost" size="icon" className="h-7 w-7 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
                   ))
                 ) : (
-                  <p className="text-[9px] text-center py-8 text-slate-300 uppercase font-black tracking-widest">No direct downlines.</p>
+                  <div className="p-8 border border-dashed rounded-lg text-center">
+                    <p className="text-[10px] font-black uppercase text-slate-300 tracking-widest">No directed members</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -637,108 +658,99 @@ export default function UserDetail() {
         </Card>
       </div>
 
-      {/* DIALOG: LINK INTRODUCER (LOCAL STAGE) */}
-      <Dialog open={isChangeUplineOpen} onOpenChange={setIsChangeUplineOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="uppercase font-black tracking-widest flex items-center gap-2">
-              <LinkIcon className="w-5 h-5 text-blue-600" /> Link Introducer
-            </DialogTitle>
-            <DialogDescription>Search for an existing user to set as the introducer.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-6">
+      {/* --- Dialogs --- */}
 
-            label="Search User"            <UserLookup
-              excludeId={id}
-              onChange={(uid, userData) => {
-                if (userData) {
-                  setStagedUpline(userData);
-                  setIsChangeUplineOpen(false);
-                }
-              }}
-              placeholder="Search by Name, IC or Phone..."
-              className="bg-slate-50"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsChangeUplineOpen(false)}>CANCEL</Button>
-          </DialogFooter>
-        </DialogContent>
+      {/* Reset Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={isResetConfirmOpen}
+        onClose={() => setIsResetConfirmOpen(false)}
+        onConfirm={() => resetMutation.mutate()}
+        title="Reset Password?"
+        description={`This will generate a new temporary password for ${user.name}. The user will be required to change it on their next login.`}
+        isLoading={resetMutation.isPending}
+        confirmText="Reset Now"
+        variant="destructive"
+      />
+      
+      {/* Password Reset Result Dialog */}
+      <Dialog open={!!resetData} onOpenChange={(open) => !open && setResetData(null)}>
+         <DialogContent className="sm:max-w-[400px] rounded-3xl border-slate-200 shadow-2xl">
+            <div className="p-6 text-center space-y-6">
+               <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                  <KeyRound className="w-8 h-8" />
+               </div>
+               <div className="space-y-2">
+                  <h2 className="text-xl font-black uppercase italic text-slate-900">Password Reset</h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Temporary credentials generated</p>
+               </div>
+               <Card className="bg-slate-50 border-rose-100">
+                  <CardContent className="pt-6 pb-6">
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Temporary Password</p>
+                     <p className="text-3xl font-mono font-black text-rose-600 tracking-tighter select-all">{resetData?.temporaryPassword}</p>
+                     <p className="text-[9px] text-slate-400 mt-4 uppercase font-bold">Share this with the user immediately.</p>
+                  </CardContent>
+               </Card>
+               <Button onClick={() => setResetData(null)} className="w-full uppercase font-black tracking-widest rounded-xl h-12 shadow-lg shadow-rose-500/10">Done</Button>
+            </div>
+         </DialogContent>
       </Dialog>
 
-      {/* DIALOG: LINK ANAK MURID (LOCAL STAGE) */}
-      <Dialog open={isLinkDownlineOpen} onOpenChange={setIsLinkDownlineOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="uppercase font-black tracking-widest flex items-center gap-2">
-              <LinkIcon className="w-5 h-5 text-slate-600" /> Link Anak Murid (Downline)
-            </DialogTitle>
-            <DialogDescription>Search for an existing user to move into this hierarchy.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-6">
-            <UserLookup
-              label="Search User"
-              excludeId={id}
-              onChange={(uid, userData) => handleLinkDownline(userData)}
-              placeholder="Search by Name, IC or Phone..."
-              className="bg-slate-50"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsLinkDownlineOpen(false)}>CANCEL</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      {/* DIALOG: ASSIGN MEMBERSHIP (IMMEDIATE) */}
+      {/* Add Membership Dialog */}
       <Dialog open={isAddMembershipOpen} onOpenChange={setIsAddMembershipOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-3xl">
           <DialogHeader>
-            <DialogTitle className="uppercase font-black tracking-widest flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-blue-600" /> Assign Membership
-            </DialogTitle>
-            <DialogDescription>Generate a new Membership ID for this user immediately.</DialogDescription>
+            <DialogTitle className="text-xl font-black uppercase italic">Assign Membership</DialogTitle>
+            <DialogDescription className="text-xs uppercase font-bold tracking-widest text-slate-400">Link this user to a formal membership program.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            assignMembershipMutation.mutate({
-              programType: formData.get('programType'),
-              manualSequence: formData.get('manualSequence') ? parseInt(formData.get('manualSequence')) : null
-            });
-          }} className="space-y-4 py-4">
-            <div className="space-y-1">
-              <Label className="text-[10px] uppercase font-black tracking-widest">Select Program</Label>
-              <Select name="programType" required>
-                <SelectTrigger className="bg-slate-50">
-                  <SelectValue placeholder="Select Program..." />
+          <div className="py-4 space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase text-slate-400">Select Program</Label>
+              <Select onValueChange={(val) => assignMembershipMutation.mutate({ programId: val })}>
+                <SelectTrigger className="font-bold h-11 bg-slate-50">
+                  <SelectValue placeholder="Choose program..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {programs?.map(p => <SelectItem key={p.name} value={p.name}>{p.name} ({p.prefix})</SelectItem>)}
+                  {programs?.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name} ({p.prefix})</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] uppercase font-black tracking-widest">Manual Sequence (Optional)</Label>
-              <Input name="manualSequence" type="number" placeholder="Automatic if empty" className="bg-slate-50" />
-            </div>
-            <DialogFooter className="pt-6">
-              <Button type="button" variant="ghost" onClick={() => setIsAddMembershipOpen(false)}>CANCEL</Button>
-              <Button type="submit" disabled={assignMembershipMutation.isPending} className="bg-blue-600 hover:bg-blue-700 font-bold px-8">
-                {assignMembershipMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "CONFIRM"}
-              </Button>
-            </DialogFooter>
-          </form>
+          </div>
         </DialogContent>
       </Dialog>
 
+      {/* Network Dialogs */}
+      <Dialog open={isChangeUplineOpen} onOpenChange={setIsChangeUplineOpen}>
+        <DialogContent className="rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase italic">Change Introducer</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <UserLookup onChange={(u) => { setStagedUpline(u); setIsChangeUplineOpen(false); }} />
+          </div>
+        </DialogContent>
+
+      </Dialog>
+
+      <Dialog open={isLinkDownlineOpen} onOpenChange={setIsLinkDownlineOpen}>
+        <DialogContent className="rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase italic">Link Directed Member</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <UserLookup onChange={handleLinkDownline} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 function UserDetailSkeleton() {
   return (
-    <div className="max-w-6xl mx-auto p-8 space-y-8 animate-pulse bg-slate-50/50">
-      <div className="h-24 bg-white rounded-2xl border border-slate-200" />
+    <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-8 animate-pulse">
+      <div className="h-32 bg-white rounded-2xl border border-slate-200" />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-48 bg-white rounded-2xl border border-slate-200" />)}
       </div>

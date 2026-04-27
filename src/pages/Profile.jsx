@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useQuery } from '@tanstack/react-query';
-import { User, Shield, IdCard, Calendar, Loader2, ShoppingBag, Search, Filter, Award, Layers } from 'lucide-react';
+import { User, Shield, IdCard, Calendar, Loader2, ShoppingBag, Search, Filter, Award, Layers, KeyRound } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { fetchClient } from '@/api/fetchClient';
 import OrderTable from '@/components/finance/OrderTable';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 export default function Profile() {
   const { user: authUser } = useAuthStore();
-  
+  const navigate = useNavigate();
+
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -53,15 +56,25 @@ export default function Profile() {
   return (
     <div className="h-full text-foreground p-4 md:p-8 pt-6 overflow-y-auto">
       <div className="max-w-6xl mx-auto space-y-12 pb-20">
-        
+
         {/* Header Section */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <h1 className="text-2xl md:text-3xl font-light tracking-tight">Your <span className="font-semibold">Profile</span></h1>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/change-password')}
+            className="rounded-xl border-slate-200 text-slate-500 hover:text-rose-600 hover:bg-rose-50 font-black uppercase text-[10px] tracking-widest h-10 px-4"
+          >
+            <KeyRound className="w-3.5 h-3.5 mr-2" />
+            Change Password
+          </Button>
         </div>
 
         {/* Profile Details Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* Main Column: Account Details + Order History */}
           <div className="lg:col-span-2 space-y-8">
             <Card className="bg-card border-border shadow-sm">
@@ -87,10 +100,10 @@ export default function Profile() {
                   <div>
                     <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Cawangan (Branch)</p>
                     <p className={cn(
-                        "text-lg font-medium",
-                        !user?.cawanganName && "italic text-muted-foreground/60"
+                      "text-lg font-medium",
+                      !user?.cawanganName && "italic text-muted-foreground/60"
                     )}>
-                        {user?.cawanganName || 'Unassigned'}
+                      {user?.cawanganName || 'Unassigned'}
                     </p>
                   </div>
                   <div>
@@ -133,15 +146,15 @@ export default function Profile() {
                         <div>
                           <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Belt Rank</p>
                           <div className="flex items-center gap-2">
-                             <Award className="w-4 h-4 text-red-600" />
-                             <p className="text-sm font-black">{user.currentBengkungName || 'Cindai Kuning (Kosong)'}</p>
+                            <Award className="w-4 h-4 text-red-600" />
+                            <p className="text-sm font-black">{user.currentBengkungName || 'Cindai Kuning (Kosong)'}</p>
                           </div>
                         </div>
                         <div>
                           <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Gelanggang</p>
                           <div className="flex items-center gap-2">
-                             <Layers className="w-4 h-4 text-blue-500" />
-                             <p className="text-sm font-bold">{user.gelanggangName || '-'}</p>
+                            <Layers className="w-4 h-4 text-blue-500" />
+                            <p className="text-sm font-bold">{user.gelanggangName || '-'}</p>
                           </div>
                         </div>
                         <div>
@@ -227,7 +240,7 @@ export default function Profile() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Filter className="w-3 h-3 text-muted-foreground" />
-                    <select 
+                    <select
                       className="bg-muted/20 border border-border rounded-md text-[10px] font-bold uppercase h-9 px-2 outline-none focus:ring-2 focus:ring-emerald-500/20"
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
@@ -318,10 +331,10 @@ export default function Profile() {
                   <div className="divide-y divide-border max-h-[400px] overflow-y-auto custom-scrollbar">
                     {upcomingEvents.slice(0, 5).map((event) => {
                       const isToday = new Date(event.date).toDateString() === new Date().toDateString();
-                      
+
                       return (
-                        <div 
-                          key={event.id} 
+                        <div
+                          key={event.id}
                           className={cn(
                             "p-4 transition-colors",
                             isToday ? "bg-blue-500/10 hover:bg-blue-500/15" : "hover:bg-muted/20"
