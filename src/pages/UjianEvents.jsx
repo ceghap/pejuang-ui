@@ -123,18 +123,18 @@ export default function UjianEvents() {
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-red-900">Ujian Events</h1>
-          <p className="text-muted-foreground mt-1">Schedule and manage belt examination sessions (Ujian Bengkung).</p>
+          <h1 className="text-3xl font-bold tracking-tight text-red-900">Sesi Ujian Bengkung</h1>
+          <p className="text-muted-foreground mt-1">Urus sesi ujian bengkung. </p>
         </div>
         <Button onClick={handleAddNew} className="bg-red-700 hover:bg-red-800">
-          <Plus className="mr-2 h-4 w-4" /> Schedule New Ujian
+          <Plus className="mr-2 h-4 w-4" /> Jadualkan Ujian Baru
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Upcoming & Past Sessions</CardTitle>
-          <CardDescription>All scheduled examination sessions organized by HQ.</CardDescription>
+          <CardTitle>Sesi Akan Datang & Sesi Lepas </CardTitle>
+          <CardDescription>Semua sesi ujian yang dijadualkan dan dianjurkan oleh HQ.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -190,7 +190,7 @@ export default function UjianEvents() {
 
                       <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold uppercase tracking-tight px-3" asChild>
                         <Link to={`/admin/ujian-events/${event.id}/markings`} className="flex items-center gap-1.5">
-                          <ClipboardCheck className="w-3.5 h-3.5" /> 
+                          <ClipboardCheck className="w-3.5 h-3.5" />
                           <span>Markings</span>
                         </Link>
                       </Button>

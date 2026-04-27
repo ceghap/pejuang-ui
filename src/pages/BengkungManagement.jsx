@@ -23,7 +23,7 @@ import { useNavigate } from 'react-router-dom';
 
 // DnD Kit Imports
 import {
-  DndContext, 
+  DndContext,
   closestCenter,
   PointerSensor,
   useSensor,
@@ -55,8 +55,8 @@ function SortableSilibusItem({ s, onEdit, onDelete }) {
   };
 
   return (
-    <div 
-      ref={setNodeRef} 
+    <div
+      ref={setNodeRef}
       style={style}
       className={cn(
         "group flex items-center justify-between px-3 py-2 rounded-lg border bg-white hover:border-slate-300 transition-colors shadow-sm mb-2",
@@ -68,8 +68,8 @@ function SortableSilibusItem({ s, onEdit, onDelete }) {
           <GripVertical className="w-4 h-4" />
         </div>
         <div className="flex flex-col">
-           <span className="text-xs font-bold text-slate-700">{s.name}</span>
-           <span className="text-[9px] text-slate-400 uppercase font-mono tracking-tight">Order #{s.orderNo}</span>
+          <span className="text-xs font-bold text-slate-700">{s.name}</span>
+          <span className="text-[9px] text-slate-400 uppercase font-mono tracking-tight">Order #{s.orderNo}</span>
         </div>
       </div>
       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -169,15 +169,15 @@ export default function BengkungManagement() {
     defaultValues: { name: '' },
     onSubmit: async ({ value }) => {
       let finalOrderNo = editingSilibus?.orderNo || 1;
-      
+
       if (!editingSilibus) {
         const currentSilibus = selectedBengkung.syllabus || [];
         const maxOrder = currentSilibus.reduce((max, item) => Math.max(max, item.orderNo), 0);
         finalOrderNo = maxOrder + 1;
       }
 
-      silibusMutation.mutate(editingSilibus 
-        ? { ...value, id: editingSilibus.id, orderNo: finalOrderNo } 
+      silibusMutation.mutate(editingSilibus
+        ? { ...value, id: editingSilibus.id, orderNo: finalOrderNo }
         : { ...value, bengkungId: selectedBengkung.id, orderNo: finalOrderNo }
       );
       toast.success('Silibus saved');
@@ -214,9 +214,9 @@ export default function BengkungManagement() {
     const newIndex = bengkung.syllabus.findIndex(item => item.id === over.id);
 
     const reorderedSilibus = arrayMove(bengkung.syllabus, oldIndex, newIndex);
-    
+
     // Optimistically update query client
-    queryClient.setQueryData(['bengkungs'], (old) => 
+    queryClient.setQueryData(['bengkungs'], (old) =>
       old.map(b => b.id === bengkung.id ? { ...b, syllabus: reorderedSilibus } : b)
     );
 
@@ -242,7 +242,7 @@ export default function BengkungManagement() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Bengkung & Silibus</h1>
-          <p className="text-muted-foreground text-sm">Manage organization belt levels and technical requirements.</p>
+          <p className="text-muted-foreground text-sm">Urus level bengkung dan keperluan teknikal.</p>
         </div>
         <Button onClick={() => { setEditingBengkung(null); bengkungForm.reset(); setIsBengkungDialogOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" /> Add Bengkung
@@ -258,7 +258,7 @@ export default function BengkungManagement() {
                   <div className="flex flex-col">
                     <CardTitle className="text-lg font-bold">{b.name}</CardTitle>
                     <div className="flex items-center gap-2 mt-1">
-                       <Badge variant="secondary" className="text-[10px] font-bold uppercase">Order {b.levelOrder}</Badge>
+                      <Badge variant="secondary" className="text-[10px] font-bold uppercase">Order {b.levelOrder}</Badge>
                     </div>
                   </div>
                 </div>
@@ -285,19 +285,19 @@ export default function BengkungManagement() {
                 </div>
 
                 <div>
-                  <DndContext 
+                  <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
                     onDragEnd={(e) => handleDragEnd(e, b)}
                   >
-                    <SortableContext 
+                    <SortableContext
                       items={b.syllabus?.map(s => s.id) || []}
                       strategy={verticalListSortingStrategy}
                     >
                       {b.syllabus?.sort((a, b) => a.orderNo - b.orderNo).map((s) => (
-                        <SortableSilibusItem 
-                          key={s.id} 
-                          s={s} 
+                        <SortableSilibusItem
+                          key={s.id}
+                          s={s}
                           onEdit={(item) => handleEditSilibus(b, item)}
                           onDelete={(id) => setDeleteSilibusId(id)}
                         />
