@@ -29,7 +29,7 @@ export default function MyGelanggang() {
 
   const filteredGelanggangs = useMemo(() => {
     if (!gelanggangs) return [];
-    
+
     return gelanggangs.filter(g => {
       const matchesSearch = !searchTerm || g.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCawangan = filterCawanganId === 'all' || g.cawangan?.id === filterCawanganId;
@@ -60,14 +60,14 @@ export default function MyGelanggang() {
         <div>
           <h1 className="text-2xl md:text-3xl font-light tracking-tight italic">My <span className="font-semibold uppercase not-italic">Gelanggang</span></h1>
           <p className="text-muted-foreground text-sm mt-1 uppercase tracking-tighter font-medium italic opacity-70">
-             Training centers associated with your membership profile.
+            Gelangang yang berdaftar
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
-           <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-slate-200 bg-slate-50 px-4 py-1.5 h-fit">
-              {filteredGelanggangs.length} Centers Found
-           </Badge>
+          <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-slate-200 bg-slate-50 px-4 py-1.5 h-fit">
+            {filteredGelanggangs.length} Gelangang Found
+          </Badge>
         </div>
       </div>
 
@@ -79,8 +79,8 @@ export default function MyGelanggang() {
               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider ml-1">Search Centers</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <Input 
-                  placeholder="Type center name to filter..." 
+                <Input
+                  placeholder="Type center name to filter..."
                   className="pl-9 h-11 text-sm font-bold bg-white border-slate-200 focus:ring-2 focus:ring-blue-500/10 transition-all"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -90,7 +90,7 @@ export default function MyGelanggang() {
 
             <div className="w-full md:w-64 space-y-1.5">
               <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider ml-1">Filter by Branch</Label>
-              <select 
+              <select
                 className="w-full bg-white border border-slate-200 rounded-md h-11 text-sm font-bold px-3 focus:ring-2 focus:ring-blue-500/10 outline-none transition-all appearance-none"
                 style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'currentColor\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\' /%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1rem' }}
                 value={filterCawanganId}
@@ -102,8 +102,8 @@ export default function MyGelanggang() {
             </div>
 
             {(searchTerm || filterCawanganId !== 'all') && (
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="icon"
                 className="h-11 w-11 rounded-lg text-rose-500 hover:bg-rose-50 hover:text-rose-600 shrink-0"
                 onClick={() => { setSearchTerm(''); setFilterCawanganId('all'); }}
@@ -148,20 +148,20 @@ export default function MyGelanggang() {
                     <p className="text-xs text-slate-600 line-clamp-2 min-h-[32px] leading-relaxed font-medium italic px-1">
                       {g.description || "No technical description provided for this center."}
                     </p>
-                    
+
                     <div className="space-y-2.5 bg-slate-50/50 p-3 rounded-xl border border-slate-50">
                       <div className="flex items-center gap-2.5 text-xs text-slate-700 font-bold">
-                         <UserRound className="w-3.5 h-3.5 text-slate-400" />
-                         <span className="truncate">{g.jurulatih?.name || 'Vacancy'}</span>
+                        <UserRound className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="truncate">{g.jurulatih?.name || 'Vacancy'}</span>
                       </div>
                       <div className="flex items-center gap-2.5 text-xs text-slate-500 font-medium">
-                         <MapPin className="w-3.5 h-3.5 text-rose-400/70" />
-                         <span className="truncate">{g.location || 'Location Not Set'}</span>
+                        <MapPin className="w-3.5 h-3.5 text-rose-400/70" />
+                        <span className="truncate">{g.location || 'Location Not Set'}</span>
                       </div>
                     </div>
 
                     <div className="px-1 pt-1">
-                      <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest mb-0.5">Active Members</p>
+                      <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest mb-0.5">Anak gelanggang</p>
                       <p className="text-2xl font-black text-slate-900 leading-none">
                         {g.memberCount || 0}
                       </p>

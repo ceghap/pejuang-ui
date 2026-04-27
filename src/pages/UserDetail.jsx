@@ -71,6 +71,11 @@ export default function UserDetail() {
     queryFn: () => fetchClient('/bengkung')
   });
 
+  const { data: gelanggangs } = useQuery({
+    queryKey: ['gelanggangs'],
+    queryFn: () => fetchClient('/gelanggang')
+  });
+
   // Initialize staging when data loads
   useEffect(() => {
     if (user) setStagedUpline(user.upline);
@@ -137,6 +142,7 @@ export default function UserDetail() {
       role: user?.role === 'SuperAdmin' ? 1 : user?.role === 'Admin' ? 2 : 3,
       cawanganId: user?.cawanganId || null,
       positionId: user?.positionId || null,
+      gelanggangId: user?.gelanggangId || null,
       currentBengkungId: user?.currentBengkungId || null,
       profile: {
         title: user?.profile?.title || '',
@@ -170,6 +176,7 @@ export default function UserDetail() {
         role: user.role === 'SuperAdmin' ? 1 : user.role === 'Admin' ? 2 : 3,
         cawanganId: user.cawanganId || null,
         positionId: user.positionId || null,
+        gelanggangId: user.gelanggangId || null,
         currentBengkungId: user.currentBengkungId || null,
         profile: {
           title: user.profile?.title || '',
@@ -390,6 +397,37 @@ export default function UserDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-4 flex-1">
+            <form.Field name="gelanggangId" children={(field) => (
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Pusat Latihan (Gelanggang)</Label>
+                <Select 
+                  value={field.state.value || 'none'} 
+                  onValueChange={(val) => {
+                    const gid = val === 'none' ? null : val;
+                    field.handleChange(gid);
+                    
+                    // Auto-align Cawangan (Branch) when Gelanggang is changed
+                    if (gid) {
+                      const selectedG = gelanggangs?.find(g => g.id === gid);
+                      if (selectedG?.cawangan?.id) {
+                        form.setFieldValue('cawanganId', selectedG.cawangan.id);
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-slate-50 border-slate-200 font-bold">
+                    <SelectValue placeholder="Tiada (Unassigned)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Tiada (Unassigned)</SelectItem>
+                    {gelanggangs?.map(g => (
+                      <SelectItem key={g.id} value={g.id}>{g.name} ({g.cawangan?.name})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )} />
+
             <form.Field name="currentBengkungId" children={(field) => {
               const isSuperAdmin = authUser?.role === 'SuperAdmin';
               return (
