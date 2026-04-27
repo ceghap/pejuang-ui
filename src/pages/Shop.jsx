@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,7 @@ import {
 import { fetchClient } from '@/api/fetchClient';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 // Reusable User Lookup component logic (simplified for this page)
 function UserLookup({ value, onChange }) {
@@ -50,7 +52,12 @@ function UserLookup({ value, onChange }) {
       {selectedUser ? (
         <div className="flex items-center justify-between p-2 border border-border bg-muted/30 rounded-md">
           <div className="text-sm">
-            <p className="font-medium">{selectedUser.name}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-medium">{selectedUser.name}</p>
+              {selectedUser.isPejuang313 && (
+                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 text-[8px] h-4">313 Member</Badge>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">{selectedUser.phoneNumber}</p>
           </div>
           <Button variant="ghost" size="sm" onClick={() => { setSelectedUser(null); onChange(null); }}>
@@ -76,7 +83,12 @@ function UserLookup({ value, onChange }) {
                     className="w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors flex flex-col"
                     onClick={() => handleSelect(u)}
                   >
-                    <span className="font-medium">{u.name}</span>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{u.name}</span>
+                      {u.isPejuang313 && (
+                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 text-[8px] h-4">313 Member</Badge>
+                      )}
+                    </div>
                     <span className="text-xs text-muted-foreground">{u.phoneNumber}</span>
                   </button>
                 ))
@@ -93,11 +105,20 @@ function UserLookup({ value, onChange }) {
 
 export default function Shop() {
   const navigate = useNavigate();
-  const { user: currentUser } = useAuthStore();
+  const { user: authUser } = useAuthStore();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [cart, setCart] = useState([]);
+
+  // Fetch LIVE user profile to ensure isPejuang313 is up to date
+  const { data: liveUser } = useQuery({
+    queryKey: ['user-profile', authUser?.id],
+    queryFn: () => fetchClient(`/users/${authUser?.id}`),
+    enabled: !!authUser?.id
+  });
+
+  const currentUser = liveUser || authUser;
   const [isBuyDialogOpen, setIsBuyDialogOpen] = useState(false);
   const [isMissingIntroducerDialogOpen, setIsMissingIntroducerDialogOpen] = useState(false);
   const [selectedIntroducerId, setSelectedIntroducerId] = useState(null);
@@ -191,7 +212,7 @@ export default function Shop() {
   const buyForm = useForm({
     defaultValues: {
       depositAmount: '',
-      isCash: false,
+      isCash: true,
       user: null, // Full user object
       isHistorical: false,
       isDepositPaid: true,
@@ -212,23 +233,51 @@ export default function Shop() {
 
   useEffect(() => {
     if (cart.length > 0 && isBuyDialogOpen) {
-      const isCash = buyForm.getFieldValue('isCash');
-      if (isCash) {
+      const targetUser = buyForm.getFieldValue('user') || currentUser;
+
+      // Force Cash if not Pejuang313
+      if (targetUser && !targetUser.isPejuang313) {
+        buyForm.setFieldValue('isCash', true);
         buyForm.setFieldValue('depositAmount', totalPrice.toString());
       } else {
-        const minDeposit = (totalPrice * 0.1).toFixed(2);
-        buyForm.setFieldValue('depositAmount', minDeposit);
+        // If they ARE Pejuang313, we don't force a change, but we calculate the deposit if they manually unticked cash
+        const isCash = buyForm.getFieldValue('isCash');
+        if (isCash) {
+          buyForm.setFieldValue('depositAmount', totalPrice.toString());
+        } else {
+          const minDeposit = (totalPrice * 0.1).toFixed(2);
+          buyForm.setFieldValue('depositAmount', minDeposit);
+        }
       }
     }
-  }, [totalPrice, isBuyDialogOpen]);
+  }, [totalPrice, isBuyDialogOpen, currentUser, buyForm.getFieldValue('user')]);
 
   const handleIsCashChange = (val) => {
+    // If attempting to switch to installment (val = false)
+    if (!val) {
+      const targetUser = buyForm.getFieldValue('user') || currentUser;
+      if (!targetUser?.isPejuang313) {
+        toast.error("Skema ansuran hanya terbuka untuk ahli Pejuang313 sahaja.");
+        return; // Prevent switching to installment
+      }
+    }
+
     buyForm.setFieldValue('isCash', val);
     if (val) {
       buyForm.setFieldValue('depositAmount', totalPrice.toString());
       buyForm.setFieldValue('isHistorical', false);
     } else {
       buyForm.setFieldValue('depositAmount', (totalPrice * 0.1).toFixed(2));
+    }
+  };
+
+  // Force isCash=true if the selected user for admin purchase is not Pejuang313
+  const handleUserChange = (user) => {
+    buyForm.setFieldValue('user', user);
+    if (user && !user.isPejuang313) {
+      buyForm.setFieldValue('isCash', true);
+      buyForm.setFieldValue('depositAmount', totalPrice.toString());
+      buyForm.setFieldValue('isHistorical', false);
     }
   };
 
@@ -408,19 +457,47 @@ export default function Shop() {
                 <span className="font-bold text-xl text-foreground">RM {totalPrice.toLocaleString()}</span>
               </div>
 
-              <buyForm.Field
-                name="isCash"
-                children={(field) => (
-                  <div className="flex items-center justify-between pt-2">
-                    <Label htmlFor="isCash" className="cursor-pointer">Full Cash Purchase</Label>
-                    <input
-                      id="isCash"
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                      checked={field.state.value}
-                      onChange={(e) => handleIsCashChange(e.target.checked)}
-                    />
-                  </div>
+              <buyForm.Subscribe
+                selector={(state) => state.values.user}
+                children={(selectedMember) => (
+                  <buyForm.Field
+                    name="isCash"
+                    children={(field) => {
+                      const targetUser = selectedMember || currentUser;
+                      const canDoInstallment = targetUser?.isPejuang313;
+
+                      return (
+                        <div className="flex items-center justify-between pt-2">
+                          <div className="flex flex-col">
+                            <Label htmlFor="isCash" className={cn("cursor-pointer", !canDoInstallment && "opacity-50")}>
+                              Full Cash Purchase
+                            </Label>
+                            {!canDoInstallment && (
+                              <span className="text-[10px] text-amber-600 font-bold uppercase tracking-tight">
+                                Installment only for Pejuang313
+                              </span>
+                            )}
+                            {canDoInstallment && (
+                              <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-tight">
+                                Eligible for Installment
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            id="isCash"
+                            type="checkbox"
+                            disabled={!canDoInstallment}
+                            className={cn(
+                              "h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500",
+                              !canDoInstallment && "opacity-50 cursor-not-allowed"
+                            )}
+                            checked={field.state.value}
+                            onChange={(e) => handleIsCashChange(e.target.checked)}
+                          />
+                        </div>
+                      );
+                    }}
+                  />
                 )}
               />
 
@@ -461,7 +538,7 @@ export default function Shop() {
                 children={(field) => (
                   <UserLookup
                     value={field.state.value}
-                    onChange={(val) => field.handleChange(val)}
+                    onChange={(val) => handleUserChange(val)}
                   />
                 )}
               />
