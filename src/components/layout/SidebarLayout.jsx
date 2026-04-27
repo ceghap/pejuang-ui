@@ -29,7 +29,7 @@ export default function SidebarLayout() {
     { label: 'Position Management', path: '/admin/positions', icon: Briefcase },
     { label: 'Gelanggang Management', path: '/admin/gelanggang', icon: Layers },
     { label: 'Bengkung & Silibus', path: '/admin/bengkung', icon: Award },
-    { label: 'Ujian Events', path: '/admin/ujian-events', icon: ClipboardCheck },
+    { label: 'Sesi Ujian', path: '/admin/ujian-events', icon: ClipboardCheck },
     { label: 'Membership Programs', path: '/admin/memberships', icon: IdCard },
   ];
 
