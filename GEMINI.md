@@ -32,6 +32,10 @@ This file provides persistent context and mandates for the Gemini CLI agent and 
 ### User Experience & Flows
 - **Authentication**: Redirect to `/login` if unauthenticated.
 - **Mandatory Password Reset**: If a user is flagged with `MustChangePassword`, the `fetchClient` will trigger a redirect to `/change-password`. Do not bypass this flow.
+- **MACAT Tournament Portal**:
+  - Located at `/tournament-portal`.
+  - Supports public registration for non-users.
+  - Coaches manage internal students via `GelanggangDetail.jsx` -> MACAT Tab.
 - **Toasts**: Use `sonner` for all success/error notifications.
 - **Naming Conventions**: 
   - Use "Product Categories" instead of "Categories" to distinguish from other potential category types.
