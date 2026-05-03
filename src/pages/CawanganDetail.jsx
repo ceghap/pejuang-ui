@@ -449,48 +449,6 @@ export default function CawanganDetail() {
 
         {/* Sidebar Info */}
         <div className="space-y-6">
-            <Card className="border-slate-200 shadow-sm bg-slate-900 text-white overflow-hidden">
-                <CardHeader className="pb-2">
-                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-400">Branch Insights</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                                <Users className="w-5 h-5 text-blue-400" />
-                            </div>
-                            <div>
-                                <p className="text-2xl font-black">{cawangan.userCount || 0}</p>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Members</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-white/10 space-y-3">
-                        <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase">Commitee Filled</span>
-                            <span className="text-xs font-mono font-bold text-emerald-400">
-                                {cawangan.committee?.length || 0} / {branchPositions.length}
-                            </span>
-                        </div>
-                        <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                            <div 
-                                className="bg-emerald-500 h-full transition-all duration-1000" 
-                                style={{ width: `${(cawangan.committee?.length / branchPositions.length) * 100 || 0}%` }}
-                            />
-                        </div>
-                    </div>
-                    
-                    <Button 
-                        variant="secondary" 
-                        className="w-full bg-white/5 border-white/10 hover:bg-white/10 text-white font-bold text-[10px] uppercase tracking-widest h-10 mt-4"
-                        onClick={() => navigate(`/admin/users?cawanganId=${id}`)}
-                    >
-                        View Members List
-                    </Button>
-                </CardContent>
-            </Card>
-
             <Card className="border-slate-200 shadow-sm overflow-hidden">
                 <CardHeader className="bg-slate-50/50 border-b border-slate-100">
                     <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-500">Active Committee</CardTitle>
