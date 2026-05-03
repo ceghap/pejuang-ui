@@ -177,6 +177,39 @@ export default function Profile() {
                     </div>
 
                     <div className="pt-8 border-t border-border/50">
+                      <p className="text-xs font-black text-emerald-500 uppercase tracking-[0.2em] mb-6">MACAT / Tournament Information</p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Weight</p>
+                          <p className="text-sm font-bold">{user.profile.weight ? `${user.profile.weight} kg` : '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Height</p>
+                          <p className="text-sm font-bold">{user.profile.height ? `${user.profile.height} cm` : '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Medical Status</p>
+                          <div className="pt-1">
+                            <span className={cn(
+                              "inline-flex items-center rounded-md px-2.5 py-1 text-xs font-bold ring-1 ring-inset uppercase tracking-tighter",
+                              user.profile.medicalStatus === 'Cleared' ? "bg-emerald-500/10 text-emerald-500 ring-emerald-500/30" : 
+                              user.profile.medicalStatus === 'Rejected' ? "bg-rose-500/10 text-rose-500 ring-rose-500/30" :
+                              "bg-amber-500/10 text-amber-500 ring-amber-500/30"
+                            )}>
+                              {user.profile.medicalStatus || 'Pending'}
+                            </span>
+                          </div>
+                        </div>
+                        {user.profile.medicalClearanceDate && (
+                          <div>
+                            <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Medical Clearance Date</p>
+                            <p className="text-sm font-medium">{new Date(user.profile.medicalClearanceDate).toLocaleDateString('en-GB')}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-8 border-t border-border/50">
                       <p className="text-xs font-black text-rose-500 uppercase tracking-[0.2em] mb-6">Emergency Contact (Waris)</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>

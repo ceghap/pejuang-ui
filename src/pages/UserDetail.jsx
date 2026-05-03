@@ -175,6 +175,10 @@ export default function UserDetail() {
         mandiAdatYear: user?.profile?.mandiAdatYear || null,
         mandiPelangirYear: user?.profile?.mandiPelangirYear || null,
         membershipCardStatus: user?.profile?.membershipCardStatus || '',
+        weight: user?.profile?.weight || null,
+        height: user?.profile?.height || null,
+        medicalStatus: user?.profile?.medicalStatus || 'Pending',
+        medicalClearanceDate: user?.profile?.medicalClearanceDate ? user.profile.medicalClearanceDate.split('T')[0] : '',
         nextOfKinName: user?.profile?.nextOfKinName || '',
         nextOfKinIc: user?.profile?.nextOfKinIc || '',
         nextOfKinPhone: user?.profile?.nextOfKinPhone || '',
@@ -209,6 +213,10 @@ export default function UserDetail() {
           mandiAdatYear: user.profile?.mandiAdatYear || null,
           mandiPelangirYear: user.profile?.mandiPelangirYear || null,
           membershipCardStatus: user.profile?.membershipCardStatus || '',
+          weight: user.profile?.weight || null,
+          height: user.profile?.height || null,
+          medicalStatus: user.profile?.medicalStatus || 'Pending',
+          medicalClearanceDate: user.profile?.medicalClearanceDate ? user.profile.medicalClearanceDate.split('T')[0] : '',
           nextOfKinName: user.profile?.nextOfKinName || '',
           nextOfKinIc: user.profile?.nextOfKinIc || '',
           nextOfKinPhone: user.profile?.nextOfKinPhone || '',
@@ -557,6 +565,52 @@ export default function UserDetail() {
                 </div>
               )} />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* MACAT / TOURNAMENT */}
+        <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col">
+          <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
+            <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-emerald-600 flex items-center gap-2">
+              <ShieldAlert className="w-3 h-3" /> MACAT / Tournament
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4 flex-1">
+            <div className="grid grid-cols-2 gap-4">
+              <form.Field name="profile.weight" children={(field) => (
+                <div className="space-y-1">
+                  <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Weight (kg)</Label>
+                  <Input type="number" step="0.1" {...field.state} value={field.state.value || ''} onChange={(e) => field.handleChange(e.target.value ? parseFloat(e.target.value) : null)} className="bg-slate-50 border-slate-200 font-bold" />
+                </div>
+              )} />
+              <form.Field name="profile.height" children={(field) => (
+                <div className="space-y-1">
+                  <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Height (cm)</Label>
+                  <Input type="number" step="0.1" {...field.state} value={field.state.value || ''} onChange={(e) => field.handleChange(e.target.value ? parseFloat(e.target.value) : null)} className="bg-slate-50 border-slate-200 font-bold" />
+                </div>
+              )} />
+            </div>
+            <form.Field name="profile.medicalStatus" children={(field) => (
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Medical Status</Label>
+                <Select value={field.state.value} onValueChange={(val) => field.handleChange(val)}>
+                  <SelectTrigger className="bg-slate-50 border-slate-200 font-bold">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="Cleared">Cleared</SelectItem>
+                    <SelectItem value="Rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )} />
+            <form.Field name="profile.medicalClearanceDate" children={(field) => (
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Medical Clearance Date</Label>
+                <Input type="date" {...field.state} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} className="bg-slate-50 border-slate-200" />
+              </div>
+            )} />
           </CardContent>
         </Card>
 

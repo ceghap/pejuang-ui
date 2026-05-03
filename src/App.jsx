@@ -11,6 +11,7 @@ import MembershipProgramDetails from './pages/MembershipProgramDetails';
 import Products from './pages/Products';
 import Categories from './pages/Categories';
 import ManageCalendar from './pages/ManageCalendar';
+import ManageTournaments from './pages/ManageTournaments';
 import ManageCawangan from './pages/ManageCawangan';
 import CawanganDetail from './pages/CawanganDetail';
 import Positions from './pages/Positions';
@@ -19,6 +20,7 @@ import TierConfigs from './pages/TierConfigs';
 import FinancialDashboard from './pages/FinancialDashboard';
 import Shop from './pages/Shop';
 import Profile from './pages/Profile';
+import TournamentPortal from './pages/TournamentPortal';
 import MyCommissions from './pages/MyCommissions';
 import Orders from './pages/Orders';
 import OrderDetails from './pages/OrderDetails';
@@ -117,6 +119,7 @@ const router = createBrowserRouter([
         element: <SidebarLayout />,
         children: [
           { path: '/profile', element: <Profile /> },
+          { path: '/tournaments', element: <TournamentPortal /> },
           { path: '/shop', element: <Shop /> },
           { path: '/orders', element: <Orders /> },
           { path: '/commissions', element: <MyCommissions /> },
@@ -154,6 +157,7 @@ const router = createBrowserRouter([
           { path: '/admin/products', element: <Products /> },
           { path: '/admin/categories', element: <Categories /> },
           { path: '/admin/calendar', element: <ManageCalendar /> },
+          { path: '/admin/tournaments', element: <ManageTournaments /> },
           { path: '/admin/cawangan', element: <ManageCawangan /> },
           { path: '/admin/cawangan/:id', element: <CawanganDetail /> },
           { path: '/admin/positions', element: <Positions /> },
