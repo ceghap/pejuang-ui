@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { 
   Table, 
   TableBody, 
@@ -89,7 +91,8 @@ export default function Positions() {
       description: '',
       sortOrder: 0,
       isActive: true,
-      level: 3
+      level: 3,
+      isBranchAdmin: false
     },
     onSubmit: async ({ value }) => {
       if (editingPosition) {
@@ -107,6 +110,7 @@ export default function Positions() {
     form.setFieldValue('sortOrder', pos.sortOrder || 0);
     form.setFieldValue('isActive', pos.isActive ?? true);
     form.setFieldValue('level', pos.level || 3);
+    form.setFieldValue('isBranchAdmin', pos.isBranchAdmin || false);
     setIsDialogOpen(true);
   };
 
@@ -156,6 +160,7 @@ export default function Positions() {
                 <TableHead>Position Name</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Admin</TableHead>
                 <TableHead>Users</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -193,6 +198,13 @@ export default function Positions() {
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase">
                             <XCircle className="w-3 h-3" /> Inactive
                         </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {pos.isBranchAdmin && (
+                        <Badge variant="secondary" className="text-[9px] uppercase font-bold bg-blue-50 text-blue-700 border-blue-100">
+                            Branch Admin
+                        </Badge>
                     )}
                   </TableCell>
                   <TableCell>
@@ -318,11 +330,11 @@ export default function Positions() {
               )}
             />
 
-            {editingPosition && (
+            <div className="flex flex-col gap-3 pt-2">
                 <form.Field
-                    name="isActive"
+                    name="isBranchAdmin"
                     children={(field) => (
-                        <div className="flex items-center gap-2 pt-2">
+                        <div className="flex items-center gap-2">
                             <input
                                 id={field.name}
                                 type="checkbox"
@@ -330,11 +342,32 @@ export default function Positions() {
                                 onChange={(e) => field.handleChange(e.target.checked)}
                                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                             />
-                            <Label htmlFor={field.name}>This position is active</Label>
+                            <div className="grid gap-1.5 leading-none">
+                                <Label htmlFor={field.name} className="text-sm font-bold">Grant Branch Admin Access</Label>
+                                <p className="text-[10px] text-muted-foreground">Users with this position will have administrative access to their own branch members.</p>
+                            </div>
                         </div>
                     )}
                 />
-            )}
+
+                {editingPosition && (
+                    <form.Field
+                        name="isActive"
+                        children={(field) => (
+                            <div className="flex items-center gap-2">
+                                <input
+                                    id={field.name}
+                                    type="checkbox"
+                                    checked={field.state.value}
+                                    onChange={(e) => field.handleChange(e.target.checked)}
+                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <Label htmlFor={field.name}>This position is active</Label>
+                            </div>
+                        )}
+                    />
+                )}
+            </div>
 
             <div className="flex justify-end gap-3 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>

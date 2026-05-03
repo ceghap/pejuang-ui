@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -36,6 +37,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { fetchClient, downloadFile } from '@/api/fetchClient';
 import { cn } from '@/lib/utils';
 import { UserLookup } from '@/components/ui/user-lookup';
+import { useAuthStore } from '@/store/authStore';
 
 import { toast } from 'sonner';
 
@@ -43,6 +45,9 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
+  const { user } = useAuthStore();
+  const isGlobalAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin';
+  const isBranchAdmin = user?.isBranchAdmin;
 
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -284,17 +289,19 @@ export default function AdminDashboard() {
               <CardDescription className="text-muted-foreground">Manage all registered prospects and admins.</CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-              <select
-                className="bg-background border border-border rounded-md text-[10px] font-bold uppercase h-10 px-2 outline-none w-full sm:w-auto min-w-[120px]"
-                value={cawanganFilter}
-                onChange={(e) => setCawanganFilter(e.target.value)}
-              >
-                <option value="all">All Branches</option>
-                <option value="unassigned">Unassigned</option>
-                {cawangans?.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              {isGlobalAdmin && (
+                <select
+                  className="bg-background border border-border rounded-md text-[10px] font-bold uppercase h-10 px-2 outline-none w-full sm:w-auto min-w-[120px]"
+                  value={cawanganFilter}
+                  onChange={(e) => setCawanganFilter(e.target.value)}
+                >
+                  <option value="all">All Branches</option>
+                  <option value="unassigned">Unassigned</option>
+                  {cawangans?.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              )}
               <select
                 className="bg-background border border-border rounded-md text-[10px] font-bold uppercase h-10 px-2 outline-none w-full sm:w-auto min-w-[120px]"
                 value={mandiAdatFilter}
@@ -304,16 +311,18 @@ export default function AdminDashboard() {
                 <option value="yes">Mandi Adat: Yes</option>
                 <option value="no">Mandi Adat: No</option>
               </select>
-              <select
-                className="bg-background border border-border rounded-md text-[10px] font-bold uppercase h-10 px-2 outline-none w-full sm:w-auto min-w-[120px]"
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-              >
-                <option value="all">All Roles</option>
-                <option value="SuperAdmin">Super Admin</option>
-                <option value="Admin">Admin</option>
-                <option value="User">User</option>
-              </select>
+              {isGlobalAdmin && (
+                <select
+                  className="bg-background border border-border rounded-md text-[10px] font-bold uppercase h-10 px-2 outline-none w-full sm:w-auto min-w-[120px]"
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                >
+                  <option value="all">All Roles</option>
+                  <option value="SuperAdmin">Super Admin</option>
+                  <option value="Admin">Admin</option>
+                  <option value="User">User</option>
+                </select>
+              )}
 
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
@@ -600,52 +609,29 @@ export default function AdminDashboard() {
                   </div>
                 )}
               />
-              <form.Field
-                name="cawanganId"
-                children={(field) => (
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor={field.name}>Cawangan (Branch)</Label>
-                    <select
-                      id={field.name}
-                      name={field.name}
-                      value={field.state.value || ''}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value || null)}
-                      className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
-                    >
-                      <option value="">Select Cawangan...</option>
-                      {cawangans?.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              />
-              <form.Field
-                name="positionId"
-                children={(field) => (
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor={field.name}>Position (Jawatan)</Label>
-                    <select
-                      id={field.name}
-                      name={field.name}
-                      value={field.state.value || ''}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value || null)}
-                      className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
-                    >
-                      <option value="">No Specific Position</option>
-                      {positions?.filter(p => {
-                          if (!p.isActive) return false;
-                          const cId = form.getFieldValue('cawanganId');
-                          return !cId ? (p.level === 1 || p.level === 3) : (p.level === 2 || p.level === 3);
-                      }).map(p => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              />
+              {isGlobalAdmin && (
+                <form.Field
+                  name="cawanganId"
+                  children={(field) => (
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor={field.name}>Cawangan (Branch)</Label>
+                      <select
+                        id={field.name}
+                        name={field.name}
+                        value={field.state.value || ''}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value || null)}
+                        className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
+                      >
+                        <option value="">Select Cawangan...</option>
+                        {cawangans?.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                />
+              )}
               <form.Field
                 name="positionId"
                 children={(field) => (
@@ -662,7 +648,7 @@ export default function AdminDashboard() {
                       <option value="">No Specific Position</option>
                       {positions?.filter(p => {
                           if (!p.isActive) return false;
-                          const cId = form.getFieldValue('cawanganId');
+                          const cId = isGlobalAdmin ? form.getFieldValue('cawanganId') : user?.cawanganId;
                           return !cId ? (p.level === 1 || p.level === 3) : (p.level === 2 || p.level === 3);
                       }).map(p => (
                         <option key={p.id} value={p.id}>{p.name}</option>
@@ -693,26 +679,28 @@ export default function AdminDashboard() {
                   </div>
                 )}
               />
-              <form.Field
-                name="role"
-                children={(field) => (
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor={field.name}>Role</Label>
-                    <select
-                      id={field.name}
-                      name={field.name}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(parseInt(e.target.value, 10))}
-                      className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
-                    >
-                      <option value={3}>User</option>
-                      <option value={2}>Admin</option>
-                      <option value={1}>SuperAdmin</option>
-                    </select>
-                  </div>
-                )}
-              />
+              {isGlobalAdmin && (
+                <form.Field
+                  name="role"
+                  children={(field) => (
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor={field.name}>Role</Label>
+                      <select
+                        id={field.name}
+                        name={field.name}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(parseInt(e.target.value, 10))}
+                        className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
+                      >
+                        <option value={3}>User</option>
+                        <option value={2}>Admin</option>
+                        <option value={1}>SuperAdmin</option>
+                      </select>
+                    </div>
+                  )}
+                />
+              )}
             </div>
 
             <div className="flex justify-end gap-3 pt-6">

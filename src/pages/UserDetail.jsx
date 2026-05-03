@@ -31,6 +31,9 @@ export default function UserDetail() {
   const queryClient = useQueryClient();
   const { user: authUser } = useAuthStore();
 
+  const isGlobalAdmin = authUser?.role === 'Admin' || authUser?.role === 'SuperAdmin';
+  const isBranchAdmin = authUser?.isBranchAdmin;
+
   // Dialog States
   const [isAddMembershipOpen, setIsAddMembershipOpen] = useState(false);
   const [isLinkDownlineOpen, setIsLinkDownlineOpen] = useState(false);
@@ -323,21 +326,23 @@ export default function UserDetail() {
                 <Input {...field.state} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} className="bg-slate-50 border-slate-200" />
               </div>
             )} />
-            <form.Field name="role" children={(field) => (
-              <div className="space-y-1">
-                <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">System Role</Label>
-                <Select value={field.state.value.toString()} onValueChange={(val) => field.handleChange(parseInt(val))}>
-                  <SelectTrigger className="bg-slate-50 border-slate-200 font-bold">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">Super Admin</SelectItem>
-                    <SelectItem value="2">Admin</SelectItem>
-                    <SelectItem value="3">User</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )} />
+            {isGlobalAdmin && (
+              <form.Field name="role" children={(field) => (
+                <div className="space-y-1">
+                  <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">System Role</Label>
+                  <Select value={field.state.value.toString()} onValueChange={(val) => field.handleChange(parseInt(val))}>
+                    <SelectTrigger className="bg-slate-50 border-slate-200 font-bold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Super Admin</SelectItem>
+                      <SelectItem value="2">Admin</SelectItem>
+                      <SelectItem value="3">User</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )} />
+            )}
           </CardContent>
         </Card>
 
@@ -367,7 +372,7 @@ export default function UserDetail() {
                         <SelectItem value="none">No Specific Position</SelectItem>
                         {positions?.filter(p => {
                             if (!p.isActive) return false;
-                            const userCawanganId = form.getFieldValue('cawanganId');
+                            const userCawanganId = isGlobalAdmin ? form.getFieldValue('cawanganId') : authUser?.cawanganId;
                             if (!userCawanganId) {
                                 // HQ user
                                 return p.level === 1 || p.level === 3;
@@ -401,20 +406,22 @@ export default function UserDetail() {
                 <Input {...field.state} value={field.state.value} onChange={(e) => field.handleChange(e.target.value)} className="bg-slate-50 border-slate-200 text-sm" />
               </div>
             )} />
-            <form.Field name="cawanganId" children={(field) => (
-              <div className="space-y-1">
-                <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">State / Branch</Label>
-                <Select value={field.state.value || 'none'} onValueChange={(val) => field.handleChange(val === 'none' ? null : val)}>
-                  <SelectTrigger className="bg-slate-50 border-slate-200 font-bold">
-                    <SelectValue placeholder="No Cawangan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Cawangan</SelectItem>
-                    {cawangans?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            )} />
+            {isGlobalAdmin && (
+              <form.Field name="cawanganId" children={(field) => (
+                <div className="space-y-1">
+                  <Label className="text-[10px] uppercase font-bold tracking-widest text-slate-400">State / Branch</Label>
+                  <Select value={field.state.value || 'none'} onValueChange={(val) => field.handleChange(val === 'none' ? null : val)}>
+                    <SelectTrigger className="bg-slate-50 border-slate-200 font-bold">
+                      <SelectValue placeholder="No Cawangan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Cawangan</SelectItem>
+                      {cawangans?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )} />
+            )}
           </CardContent>
         </Card>
 

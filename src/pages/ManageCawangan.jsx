@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from '@tanstack/react-form';
-import { Building2, Plus, Loader2, Trash2, Pencil, MapPin, Users, Phone, UserRound } from 'lucide-react';
+import { Building2, Plus, Loader2, Trash2, MapPin, Users, Phone, UserRound, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,8 +30,8 @@ import { UserLookup } from '@/components/ui/user-lookup';
 
 export default function ManageCawangan() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCawangan, setEditingCawangan] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
 
   const { data: cawangans, isLoading } = useQuery({
@@ -50,22 +51,6 @@ export default function ManageCawangan() {
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to create branch');
-    }
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: (cawangan) => fetchClient(`/cawangan/${cawangan.id}`, {
-      method: 'PUT',
-      body: JSON.stringify(cawangan),
-    }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['cawangans']);
-      setIsDialogOpen(false);
-      setEditingCawangan(null);
-      toast.success('Branch updated successfully');
-    },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to update branch');
     }
   });
 
@@ -94,27 +79,11 @@ export default function ManageCawangan() {
       picId: null
     },
     onSubmit: async ({ value }) => {
-      if (editingCawangan) {
-        updateMutation.mutate({ ...value, id: editingCawangan.id });
-      } else {
-        createMutation.mutate(value);
-      }
+      createMutation.mutate(value);
     },
   });
 
-  const handleEdit = (cawangan) => {
-    setEditingCawangan(cawangan);
-    form.setFieldValue('name', cawangan.name);
-    form.setFieldValue('code', cawangan.code || '');
-    form.setFieldValue('location', cawangan.location || '');
-    form.setFieldValue('address', cawangan.address || '');
-    form.setFieldValue('contactNumber', cawangan.contactNumber || '');
-    form.setFieldValue('picId', cawangan.picId || null);
-    setIsDialogOpen(true);
-  };
-
   const handleAdd = () => {
-    setEditingCawangan(null);
     form.reset();
     setIsDialogOpen(true);
   };
@@ -127,7 +96,7 @@ export default function ManageCawangan() {
     );
   }
 
-  const isMutating = createMutation.isLoading || updateMutation.isLoading;
+  const isMutating = createMutation.isLoading;
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
@@ -207,7 +176,7 @@ export default function ManageCawangan() {
                   <TableCell>
                     <div 
                       className="flex items-center gap-1.5 font-medium cursor-pointer hover:text-blue-600 group"
-                      onClick={() => window.location.href = `/admin/users?cawanganId=${cawangan.id}`}
+                      onClick={() => navigate(`/admin/users?cawanganId=${cawangan.id}`)}
                     >
                       <Users className="w-3 h-3 text-blue-500/50 group-hover:text-blue-600" />
                       <span className="text-xs group-hover:underline underline-offset-4">{cawangan.userCount}</span>
@@ -215,8 +184,13 @@ export default function ManageCawangan() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(cawangan)}>
-                        <Pencil className="h-4 w-4" />
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-blue-600 hover:bg-blue-50 font-bold text-[10px] uppercase tracking-widest px-3"
+                        onClick={() => navigate(`/admin/cawangan/${cawangan.id}`)}
+                      >
+                        Manage <ArrowRight className="ml-1.5 w-3 h-3" />
                       </Button>
                       <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteId(cawangan.id)}>
                         <Trash2 className="h-4 w-4" />
@@ -240,9 +214,9 @@ export default function ManageCawangan() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>{editingCawangan ? 'Edit Branch' : 'Add New Branch'}</DialogTitle>
+            <DialogTitle>Add New Branch</DialogTitle>
             <DialogDescription>
-              {editingCawangan ? 'Update the details of this branch.' : 'Create a new organizational branch.'}
+              Create a new organizational branch.
             </DialogDescription>
           </DialogHeader>
 
@@ -347,11 +321,10 @@ export default function ManageCawangan() {
               children={(field) => (
                 <div className="col-span-2">
                   <UserLookup 
-                    key={editingCawangan?.id || 'new'}
+                    key="new-cawangan-pic"
                     label="Person In Charge (PIC)" 
                     placeholder="Search user to assign as PIC..."
                     value={field.state.value} 
-                    initialData={editingCawangan?.picName ? { name: editingCawangan.picName } : null}
                     onChange={(val) => field.handleChange(val)} 
                   />
                 </div>
@@ -366,7 +339,7 @@ export default function ManageCawangan() {
                 {isMutating ? (
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
                 ) : (
-                  editingCawangan ? 'Update Branch' : 'Create Branch'
+                  'Create Branch'
                 )}
               </Button>
             </div>

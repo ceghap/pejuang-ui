@@ -12,6 +12,7 @@ import Products from './pages/Products';
 import Categories from './pages/Categories';
 import ManageCalendar from './pages/ManageCalendar';
 import ManageCawangan from './pages/ManageCawangan';
+import CawanganDetail from './pages/CawanganDetail';
 import Positions from './pages/Positions';
 import Commissions from './pages/Commissions';
 import TierConfigs from './pages/TierConfigs';
@@ -58,6 +59,21 @@ const AdminRoute = () => {
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   // Only SuperAdmin or Admin can hit these routes
   if (user?.role !== 'SuperAdmin' && user?.role !== 'Admin') {
+    return <Navigate to="/profile" replace />;
+  }
+
+  return <Outlet />;
+};
+
+const StaffRoute = () => {
+  const { isAuthenticated, user, requiresPasswordChange } = useAuthStore();
+
+  if (requiresPasswordChange) return <Navigate to="/change-password" replace />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  
+  // SuperAdmin, Admin OR BranchAdmin can hit these routes
+  const isBranchAdmin = user?.isBranchAdmin === true;
+  if (user?.role !== 'SuperAdmin' && user?.role !== 'Admin' && !isBranchAdmin) {
     return <Navigate to="/profile" replace />;
   }
 
@@ -112,7 +128,7 @@ const router = createBrowserRouter([
     ]
   },
   {
-    element: <AdminRoute />,
+    element: <StaffRoute />,
     errorElement: <ErrorPage />,
     children: [
       {
@@ -120,6 +136,17 @@ const router = createBrowserRouter([
         children: [
           { path: '/admin/users', element: <AdminDashboard /> },
           { path: '/admin/users/:id', element: <UserDetail /> },
+        ]
+      }
+    ]
+  },
+  {
+    element: <AdminRoute />,
+    errorElement: <ErrorPage />,
+    children: [
+      {
+        element: <SidebarLayout />,
+        children: [
           { path: '/admin/hierarchy', element: <Hierarchy /> },
           { path: '/admin/commissions', element: <Commissions /> },
           { path: '/admin/memberships', element: <MembershipPrograms /> },
@@ -128,6 +155,7 @@ const router = createBrowserRouter([
           { path: '/admin/categories', element: <Categories /> },
           { path: '/admin/calendar', element: <ManageCalendar /> },
           { path: '/admin/cawangan', element: <ManageCawangan /> },
+          { path: '/admin/cawangan/:id', element: <CawanganDetail /> },
           { path: '/admin/positions', element: <Positions /> },
           { path: '/admin/gelanggang', element: <ManageGelanggang /> },
           { path: '/admin/bengkung', element: <BengkungManagement /> },

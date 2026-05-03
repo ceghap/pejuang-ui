@@ -13,6 +13,7 @@ export default function SidebarLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const isAdmin = user?.role === 'Admin' || user?.role === 'SuperAdmin';
+  const isBranchAdmin = user?.isBranchAdmin === true;
 
   const userLinks = [
     { label: 'Profile', path: '/profile', icon: User },
@@ -113,18 +114,18 @@ export default function SidebarLayout() {
             {renderLinks(userLinks)}
           </div>
 
-          {isAdmin && (
-            <>
-              <div>
-                <div className="text-xs font-semibold text-zinc-600 tracking-wider uppercase mb-3 px-2">Gayong Maarifat</div>
-                {renderLinks(gayongLinks)}
-              </div>
+          {(isAdmin || isBranchAdmin) && (
+            <div>
+              <div className="text-xs font-semibold text-zinc-600 tracking-wider uppercase mb-3 px-2">Gayong Maarifat</div>
+              {renderLinks(isAdmin ? gayongLinks : [{ label: 'User Management', path: '/admin/users', icon: LayoutDashboard }])}
+            </div>
+          )}
 
-              <div>
-                <div className="text-xs font-semibold text-zinc-600 tracking-wider uppercase mb-3 px-2">Pejuang313</div>
-                {renderLinks(pejuangLinks)}
-              </div>
-            </>
+          {isAdmin && (
+            <div>
+              <div className="text-xs font-semibold text-zinc-600 tracking-wider uppercase mb-3 px-2">Pejuang313</div>
+              {renderLinks(pejuangLinks)}
+            </div>
           )}
 
         </div>
