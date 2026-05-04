@@ -38,7 +38,8 @@ export default function TournamentPortal() {
   const [indIc, setIndIc] = useState('');
   const [indPhone, setIndPhone] = useState('');
   const [indEmail, setIndEmail] = useState('');
-  const [indWeightClass, setIndWeightClass] = useState('');
+  const [indWeight, setIndWeight] = useState('');
+  const [indHeight, setIndHeight] = useState('');
   const [indCategory, setIndCategory] = useState('');
   const [indOrg, setIndOrg] = useState('');
 
@@ -247,23 +248,39 @@ export default function TournamentPortal() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase text-slate-400">Weight Class</Label>
+                    <Label className="text-[10px] font-black uppercase text-slate-400">Weight (kg)</Label>
                     <Input 
-                      placeholder="e.g. Class A" 
+                      type="number"
+                      step="0.1"
+                      placeholder="e.g. 55.5" 
                       className="h-10 text-xs font-bold"
-                      value={indWeightClass}
-                      onChange={(e) => setIndWeightClass(e.target.value)}
+                      value={indWeight}
+                      onChange={(e) => setIndWeight(e.target.value)}
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase text-slate-400">Category</Label>
+                    <Label className="text-[10px] font-black uppercase text-slate-400">Height (cm)</Label>
                     <Input 
-                      placeholder="e.g. Putera Remaja" 
+                      type="number"
+                      step="0.1"
+                      placeholder="e.g. 170" 
                       className="h-10 text-xs font-bold"
-                      value={indCategory}
-                      onChange={(e) => setIndCategory(e.target.value)}
+                      value={indHeight}
+                      onChange={(e) => setIndHeight(e.target.value)}
                     />
                   </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase text-slate-400">Category</Label>
+                  <select
+                    className="w-full bg-white border border-slate-200 rounded-md h-10 px-3 text-sm font-bold"
+                    value={indCategory}
+                    onChange={(e) => setIndCategory(e.target.value)}
+                  >
+                    <option value="">Select Category</option>
+                    <option value="Tanding">Tanding</option>
+                    <option value="Seni">Seni</option>
+                  </select>
                 </div>
 
                 <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl flex gap-3">
@@ -284,12 +301,13 @@ export default function TournamentPortal() {
                       icNumber: indIc,
                       phoneNumber: indPhone,
                       email: indEmail,
-                      weightClass: indWeightClass, 
+                      weight: parseFloat(indWeight), 
+                      height: parseFloat(indHeight),
                       category: indCategory, 
                       organizationName: indOrg 
                     }
                   })}
-                  disabled={!indName || !indIc || !indPhone || !indOrg || !indWeightClass || !indCategory || individualMutation.isPending}
+                  disabled={!indName || !indIc || !indPhone || !indOrg || !indWeight || !indHeight || !indCategory || individualMutation.isPending}
                   className="bg-emerald-600 hover:bg-emerald-700 font-black uppercase tracking-widest text-[10px] h-11 px-8 shadow-lg shadow-emerald-500/10"
                 >
                   {individualMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <ShieldCheck className="w-3 h-3 mr-2" />}
@@ -337,7 +355,7 @@ export default function TournamentPortal() {
                           if (e.key === 'Enter') {
                             e.preventDefault();
                             if (newFighterName.trim()) {
-                              setTeamFighters([...teamFighters, { name: newFighterName.trim(), icNumber: '', phoneNumber: '', weightClass: '', category: '' }]);
+                              setTeamFighters([...teamFighters, { name: newFighterName.trim(), icNumber: '', phoneNumber: '', weight: '', height: '', category: 'Tanding' }]);
                               setNewFighterName('');
                             }
                           }
@@ -347,12 +365,13 @@ export default function TournamentPortal() {
                         type="button"
                         onClick={() => {
                           if (newFighterName.trim()) {
-                            setTeamFighters([...teamFighters, { name: newFighterName.trim(), icNumber: '', phoneNumber: '', weightClass: '', category: '' }]);
+                            setTeamFighters([...teamFighters, { name: newFighterName.trim(), icNumber: '', phoneNumber: '', weight: '', height: '', category: 'Tanding' }]);
                             setNewFighterName('');
                           }
                         }}
                         className="bg-emerald-600 h-10 w-10 p-0"
                       >
+
                         <Plus className="w-4 h-4" />
                       </Button>
                     </div>
@@ -400,31 +419,50 @@ export default function TournamentPortal() {
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1">
-                            <Label className="text-[8px] font-black uppercase text-slate-400">Weight Class</Label>
+                            <Label className="text-[8px] font-black uppercase text-slate-400">Weight (kg)</Label>
                             <Input 
-                              placeholder="e.g. Class A" 
+                              type="number"
+                              step="0.1"
+                              placeholder="Weight" 
                               className="h-8 text-[9px] font-bold"
-                              value={f.weightClass}
+                              value={f.weight}
                               onChange={(e) => {
                                 const newList = [...teamFighters];
-                                newList[idx].weightClass = e.target.value;
+                                newList[idx].weight = e.target.value;
                                 setTeamFighters(newList);
                               }}
                             />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-[8px] font-black uppercase text-slate-400">Category</Label>
+                            <Label className="text-[8px] font-black uppercase text-slate-400">Height (cm)</Label>
                             <Input 
-                              placeholder="e.g. Putera" 
+                              type="number"
+                              step="0.1"
+                              placeholder="Height" 
                               className="h-8 text-[9px] font-bold"
-                              value={f.category}
+                              value={f.height}
                               onChange={(e) => {
                                 const newList = [...teamFighters];
-                                newList[idx].category = e.target.value;
+                                newList[idx].height = e.target.value;
                                 setTeamFighters(newList);
                               }}
                             />
                           </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[8px] font-black uppercase text-slate-400">Category</Label>
+                          <select
+                            className="w-full bg-white border border-slate-200 rounded-md h-8 px-2 text-[9px] font-bold"
+                            value={f.category}
+                            onChange={(e) => {
+                              const newList = [...teamFighters];
+                              newList[idx].category = e.target.value;
+                              setTeamFighters(newList);
+                            }}
+                          >
+                            <option value="Tanding">Tanding</option>
+                            <option value="Seni">Seni</option>
+                          </select>
                         </div>
                       </Card>
                     ))}
@@ -446,12 +484,13 @@ export default function TournamentPortal() {
                         name: f.name,
                         icNumber: f.icNumber,
                         phoneNumber: f.phoneNumber,
-                        weightClass: f.weightClass, 
+                        weight: parseFloat(f.weight), 
+                        height: parseFloat(f.height),
                         category: f.category 
                       }))
                     }
                   })}
-                  disabled={!teamOrg || teamFighters.length === 0 || teamFighters.some(f => !f.icNumber || !f.phoneNumber || !f.weightClass || !f.category) || teamMutation.isPending}
+                  disabled={!teamOrg || teamFighters.length === 0 || teamFighters.some(f => !f.icNumber || !f.phoneNumber || !f.weight || !f.height || !f.category) || teamMutation.isPending}
                   className="bg-blue-600 hover:bg-blue-700 font-black uppercase tracking-widest text-[10px] h-11 px-8 shadow-lg shadow-blue-500/10"
                 >
                   {teamMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <ShieldCheck className="w-3 h-3 mr-2" />}

@@ -794,8 +794,9 @@ export default function GelanggangDetail() {
                             if (e.target.checked) {
                               setSelectedFightersForReg([...selectedFightersForReg, { 
                                 userId: fighter.id, 
-                                weightClass: '', 
-                                category: '' 
+                                weight: fighter.weight || '', 
+                                height: fighter.height || '',
+                                category: 'Tanding' 
                               }]);
                             } else {
                               setSelectedFightersForReg(selectedFightersForReg.filter(f => f.userId !== fighter.id));
@@ -812,32 +813,53 @@ export default function GelanggangDetail() {
                   </div>
 
                   {currentReg && (
-                    <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-200">
-                      <div className="space-y-1">
-                        <Label className="text-[9px] font-black uppercase text-slate-400">Weight Class</Label>
-                        <Input 
-                          placeholder="e.g. Class A (45-50kg)" 
-                          className="h-8 text-[10px] font-bold"
-                          value={currentReg.weightClass}
-                          onChange={(e) => {
-                            setSelectedFightersForReg(selectedFightersForReg.map(f => 
-                              f.userId === fighter.id ? { ...f, weightClass: e.target.value } : f
-                            ));
-                          }}
-                        />
+                    <div className="grid grid-cols-1 gap-4 animate-in fade-in duration-200">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <Label className="text-[9px] font-black uppercase text-slate-400">Weight (kg)</Label>
+                          <Input 
+                            type="number"
+                            step="0.1"
+                            placeholder="kg" 
+                            className="h-8 text-[10px] font-bold"
+                            value={currentReg.weight}
+                            onChange={(e) => {
+                              setSelectedFightersForReg(selectedFightersForReg.map(f => 
+                                f.userId === fighter.id ? { ...f, weight: e.target.value } : f
+                              ));
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[9px] font-black uppercase text-slate-400">Height (cm)</Label>
+                          <Input 
+                            type="number"
+                            step="0.1"
+                            placeholder="cm" 
+                            className="h-8 text-[10px] font-bold"
+                            value={currentReg.height}
+                            onChange={(e) => {
+                              setSelectedFightersForReg(selectedFightersForReg.map(f => 
+                                f.userId === fighter.id ? { ...f, height: e.target.value } : f
+                              ));
+                            }}
+                          />
+                        </div>
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[9px] font-black uppercase text-slate-400">Category</Label>
-                        <Input 
-                          placeholder="e.g. Putera Remaja" 
-                          className="h-8 text-[10px] font-bold"
+                        <select
+                          className="w-full bg-white border border-slate-200 rounded-md h-8 px-2 text-[10px] font-bold"
                           value={currentReg.category}
                           onChange={(e) => {
                             setSelectedFightersForReg(selectedFightersForReg.map(f => 
                               f.userId === fighter.id ? { ...f, category: e.target.value } : f
                             ));
                           }}
-                        />
+                        >
+                          <option value="Tanding">Tanding</option>
+                          <option value="Seni">Seni</option>
+                        </select>
                       </div>
                     </div>
                   )}
@@ -854,10 +876,14 @@ export default function GelanggangDetail() {
             <Button variant="ghost" onClick={() => setSelectedTournamentForReg(null)} className="uppercase text-[10px] font-black tracking-widest">Cancel</Button>
             <Button
               className="bg-emerald-600 hover:bg-emerald-700 uppercase text-[10px] font-black tracking-widest px-6 shadow-lg shadow-emerald-500/20"
-              disabled={selectedFightersForReg.length === 0 || selectedFightersForReg.some(f => !f.weightClass || !f.category) || registerFighterMutation.isPending}
+              disabled={selectedFightersForReg.length === 0 || selectedFightersForReg.some(f => !f.weight || !f.height || !f.category) || registerFighterMutation.isPending}
               onClick={() => registerFighterMutation.mutate({ 
                 eventId: selectedTournamentForReg.id, 
-                registrations: selectedFightersForReg 
+                registrations: selectedFightersForReg.map(f => ({
+                  ...f,
+                  weight: parseFloat(f.weight),
+                  height: parseFloat(f.height)
+                }))
               })}
             >
               {registerFighterMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : null}

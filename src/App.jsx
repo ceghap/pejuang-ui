@@ -12,6 +12,8 @@ import Products from './pages/Products';
 import Categories from './pages/Categories';
 import ManageCalendar from './pages/ManageCalendar';
 import ManageTournaments from './pages/ManageTournaments';
+import TournamentDetail from './pages/TournamentDetail';
+import WeightClassManagement from './pages/WeightClassManagement';
 import ManageCawangan from './pages/ManageCawangan';
 import CawanganDetail from './pages/CawanganDetail';
 import Positions from './pages/Positions';
@@ -158,6 +160,8 @@ const router = createBrowserRouter([
           { path: '/admin/categories', element: <Categories /> },
           { path: '/admin/calendar', element: <ManageCalendar /> },
           { path: '/admin/tournaments', element: <ManageTournaments /> },
+          { path: '/admin/tournaments/:id', element: <TournamentDetail /> },
+          { path: '/admin/weight-classes', element: <WeightClassManagement /> },
           { path: '/admin/cawangan', element: <ManageCawangan /> },
           { path: '/admin/cawangan/:id', element: <CawanganDetail /> },
           { path: '/admin/positions', element: <Positions /> },

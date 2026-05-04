@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-import { Network, ShieldCheck, LayoutDashboard, TrendingUp, Building2, Briefcase, User, LogOut, ShoppingBag, Receipt, IdCard, Menu, X, Layers, DollarSign, Calendar, Award, ClipboardCheck, Trophy } from 'lucide-react';
+import { Network, ShieldCheck, LayoutDashboard, TrendingUp, Building2, Briefcase, User, LogOut, ShoppingBag, Receipt, IdCard, Menu, X, Layers, DollarSign, Calendar, Award, ClipboardCheck, Trophy, Weight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,7 @@ export default function SidebarLayout() {
     { label: 'Calendar (Takwim)', path: '/admin/calendar', icon: Calendar },
     { label: 'Cawangan Management', path: '/admin/cawangan', icon: Building2 },
     { label: 'MACAT Tournaments', path: '/admin/tournaments', icon: Trophy },
+    { label: 'Weight Classes', path: '/admin/weight-classes', icon: Weight },
     { label: 'Position Management', path: '/admin/positions', icon: Briefcase },
     { label: 'Gelanggang Management', path: '/admin/gelanggang', icon: Layers },
     { label: 'Bengkung & Silibus', path: '/admin/bengkung', icon: Award },

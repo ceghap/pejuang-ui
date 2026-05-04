@@ -5,7 +5,17 @@ import { User, Shield, IdCard, Calendar, Loader2, ShoppingBag, Search, Filter, A
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { fetchClient } from '@/api/fetchClient';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import OrderTable from '@/components/finance/OrderTable';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -13,10 +23,14 @@ import { useNavigate } from 'react-router-dom';
 export default function Profile() {
   const { user: authUser } = useAuthStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editWeight, setEditWeight] = useState('');
+  const [editHeight, setEditHeight] = useState('');
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 500);
@@ -28,6 +42,25 @@ export default function Profile() {
     queryFn: () => fetchClient(`/users/${authUser?.id}`),
     enabled: !!authUser?.id
   });
+
+  const editProfileMutation = useMutation({
+    mutationFn: (data) => fetchClient(`/users/${authUser?.id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['user-profile', authUser?.id]);
+      setIsEditOpen(false);
+      toast.success('Profile updated');
+    },
+    onError: (error) => toast.error(error.message)
+  });
+
+  const handleEditOpen = () => {
+    setEditWeight(user?.profile?.weight || '');
+    setEditHeight(user?.profile?.height || '');
+    setIsEditOpen(true);
+  };
 
   const { data: upcomingEvents, isLoading: isLoadingEvents } = useQuery({
     queryKey: ['upcoming-events'],
@@ -61,15 +94,26 @@ export default function Profile() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <h1 className="text-2xl md:text-3xl font-light tracking-tight">Your <span className="font-semibold">Profile</span></h1>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/change-password')}
-            className="rounded-xl border-slate-200 text-slate-500 hover:text-rose-600 hover:bg-rose-50 font-black uppercase text-[10px] tracking-widest h-10 px-4"
-          >
-            <KeyRound className="w-3.5 h-3.5 mr-2" />
-            Change Password
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEditOpen}
+              className="rounded-xl border-emerald-200 text-emerald-600 hover:bg-emerald-50 font-black uppercase text-[10px] tracking-widest h-10 px-4"
+            >
+              Edit Weight/Height
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/change-password')}
+              className="rounded-xl border-slate-200 text-slate-500 hover:text-rose-600 hover:bg-rose-50 font-black uppercase text-[10px] tracking-widest h-10 px-4"
+            >
+              <KeyRound className="w-3.5 h-3.5 mr-2" />
+              Change Password
+            </Button>
+          </div>
         </div>
 
         {/* Profile Details Grid */}
@@ -181,11 +225,11 @@ export default function Profile() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <div>
                           <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Weight</p>
-                          <p className="text-sm font-bold">{user.profile.weight ? `${user.profile.weight} kg` : '-'}</p>
+                          <p className="text-sm font-bold">{(user.profile.weight !== null && user.profile.weight !== undefined) ? `${user.profile.weight} kg` : '-'}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Height</p>
-                          <p className="text-sm font-bold">{user.profile.height ? `${user.profile.height} cm` : '-'}</p>
+                          <p className="text-sm font-bold">{(user.profile.height !== null && user.profile.height !== undefined) ? `${user.profile.height} cm` : '-'}</p>
                         </div>
                         <div>
                           <p className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1 opacity-70">Medical Status</p>
@@ -423,6 +467,60 @@ export default function Profile() {
         </div>
 
       </div>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="uppercase font-black italic text-emerald-900">Update Competition Specs</DialogTitle>
+            <DialogDescription>Update your physical metrics for tournament eligibility.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-bold text-slate-400">Weight (kg)</Label>
+                <Input 
+                  type="number" 
+                  step="0.1" 
+                  value={editWeight} 
+                  onChange={(e) => setEditWeight(e.target.value)} 
+                  className="bg-slate-50 font-bold"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-bold text-slate-400">Height (cm)</Label>
+                <Input 
+                  type="number" 
+                  step="0.1" 
+                  value={editHeight} 
+                  onChange={(e) => setEditHeight(e.target.value)} 
+                  className="bg-slate-50 font-bold"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="ghost" onClick={() => setIsEditOpen(false)} className="uppercase text-[10px] font-black tracking-widest">Cancel</Button>
+              <Button 
+                onClick={() => {
+                  const roleMap = { 'SuperAdmin': 1, 'Admin': 2, 'User': 3 };
+                  editProfileMutation.mutate({
+                    ...user,
+                    role: roleMap[user.role] || 3,
+                    profile: {
+                      ...user.profile,
+                      weight: parseFloat(editWeight),
+                      height: parseFloat(editHeight)
+                    }
+                  });
+                }}
+                disabled={editProfileMutation.isPending}
+                className="bg-emerald-600 hover:bg-emerald-700 uppercase font-black tracking-widest text-[10px] px-8 h-12"
+              >
+                {editProfileMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : 'Update Specs'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

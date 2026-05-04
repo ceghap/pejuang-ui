@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from '@tanstack/react-form';
-import { Trophy, MapPin, Plus, Loader2, Users, Pencil, Trash2, Calendar as CalendarIcon, DollarSign } from 'lucide-react';
+import { Trophy, MapPin, Plus, Loader2, Users, Pencil, Trash2, Calendar as CalendarIcon, DollarSign, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,7 @@ const formatDate = (dateStr) => {
 };
 
 export default function ManageTournaments() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
@@ -192,6 +194,9 @@ export default function ManageTournaments() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end items-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-emerald-600" onClick={() => navigate(`/admin/tournaments/${event.id}`)}>
+                        <Eye className="w-3.5 h-3.5" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-blue-600" onClick={() => handleEdit(event)}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
