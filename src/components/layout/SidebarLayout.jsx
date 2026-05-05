@@ -34,6 +34,7 @@ export default function SidebarLayout() {
     { label: 'Gelanggang Management', path: '/admin/gelanggang', icon: Layers },
     { label: 'Bengkung & Silibus', path: '/admin/bengkung', icon: Award },
     { label: 'Sesi Ujian', path: '/admin/ujian-events', icon: ClipboardCheck },
+    { label: 'Pending Rewards', path: '/admin/pending-rewards', icon: Award },
     { label: 'Membership Programs', path: '/admin/memberships', icon: IdCard },
   ];
 

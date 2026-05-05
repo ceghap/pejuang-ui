@@ -32,6 +32,7 @@ import ManageGelanggang from './pages/ManageGelanggang';
 import BengkungManagement from './pages/BengkungManagement';
 import UjianEvents from './pages/UjianEvents';
 import JuryMarking from './pages/JuryMarking';
+import PendingRewards from './pages/PendingRewards';
 import ErrorPage from './pages/ErrorPage';
 import SidebarLayout from './components/layout/SidebarLayout';
 import { Toaster } from './components/ui/sonner';
@@ -169,6 +170,7 @@ const router = createBrowserRouter([
           { path: '/admin/bengkung', element: <BengkungManagement /> },
           { path: '/admin/ujian-events', element: <UjianEvents /> },
           { path: '/admin/ujian-events/:eventId/markings', element: <JuryMarking /> },
+          { path: '/admin/pending-rewards', element: <PendingRewards /> },
           { path: '/admin/finance', element: <FinancialDashboard /> },
           { path: '/admin/tiers', element: <TierConfigs /> }
         ]
